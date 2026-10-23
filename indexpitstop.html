@@ -1,0 +1,1350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="description" content="Pit Stop Helper: a Mario Kart 8 Deluxe build calculator, build recommender, stat lessons and build log.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2038%2038%22%3E%3Crect%20width%3D%2238%22%20height%3D%2238%22%20rx%3D%229%22%20fill%3D%22%23D4141C%22/%3E%3Cpath%20d%3D%22M9%2026%20L17%2012%20L21%2012%20L13%2026%20Z%20M17%2026%20L25%2012%20L29%2012%20L21%2026%20Z%22%20fill%3D%22%23fff%22/%3E%3C/svg%3E">
+<style>
+html { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<title>Pit Stop Helper</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wght@700;800;900&family=Barlow:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Layout concept: one racing-dashboard shell. Sticky-free header, tip strip, tabbed views, bottom bar on phones.
+   Red and black. Clean bold sans-serif headlines (Archivo), Barlow for reading. */
+:root {
+  --bg: #F3F3F5;
+  --panel: #FFFFFF;
+  --raised: #ECECEF;
+  --line: #D6D6DD;
+  --fg: #131316;
+  --fg2: #54545E;
+  --accent: #D4141C;
+  --accent-ink: #FFFFFF;
+  --good: #0F7A45;
+  --bad: #B8341A;
+  --track: #E2E2E7;
+  --focus: #1B5BE0;
+  --f-head: "Archivo", "Arial Black", "Helvetica Neue", Arial, sans-serif;
+  --f-body: "Barlow", "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0C0C0E; --panel: #151518; --raised: #1E1E22; --line: #2D2D33;
+    --fg: #F2F2F4; --fg2: #A6A6B0; --accent: #FF2E3A; --accent-ink: #150507;
+    --good: #3DDC8B; --bad: #FF8268; --track: #26262B; --focus: #7FA6FF;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0C0C0E; --panel: #151518; --raised: #1E1E22; --line: #2D2D33;
+  --fg: #F2F2F4; --fg2: #A6A6B0; --accent: #FF2E3A; --accent-ink: #150507;
+  --good: #3DDC8B; --bad: #FF8268; --track: #26262B; --focus: #7FA6FF;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  background: var(--bg); color: var(--fg);
+  font: 400 16px/1.5 var(--f-body);
+  padding-block: 0 84px;
+}
+@media (min-width: 860px) { body { padding-block: 0 24px; } }
+h1, h2, h3, h4 { font-family: var(--f-head); line-height: 1.1; margin: 0; text-wrap: balance; letter-spacing: -0.01em; }
+h1 { font-weight: 900; font-size: clamp(2rem, 7vw, 3.4rem); text-transform: uppercase; font-style: italic; }
+h2 { font-weight: 800; font-size: clamp(1.4rem, 4.2vw, 1.9rem); }
+h3 { font-weight: 800; font-size: 1.1rem; }
+h4 { font-weight: 700; font-size: 0.95rem; }
+p { margin: 0 0 0.75em; max-width: 68ch; }
+a { color: var(--accent); }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+.wrap {
+  width: 100%; max-width: 1080px; margin-inline: auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.muted { color: var(--fg2); }
+.small { font-size: 0.875rem; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* header + tip */
+.top { border-bottom: 1px solid var(--line); background: var(--panel); position: relative; overflow: hidden; }
+.top::after { content: ""; position: absolute; right: -40px; top: 0; bottom: 0; width: 220px; transform: skewX(-24deg);
+  background: repeating-linear-gradient(90deg, var(--accent) 0 10px, transparent 10px 26px); opacity: .18; pointer-events: none; }
+.top-in { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-block: 12px; position: relative; z-index: 1; }
+.logo { display: flex; align-items: center; gap: 10px; background: none; border: 0; padding: 4px 0; text-align: left; }
+.logo svg { flex: none; }
+.logo b { font-family: var(--f-head); font-weight: 900; font-style: italic; text-transform: uppercase; font-size: 1.25rem; letter-spacing: 0; line-height: 1; display: block; }
+.logo small { display: block; color: var(--fg2); font-size: 0.72rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 600; }
+.icon-btn { background: var(--raised); border: 1px solid var(--line); border-radius: 999px; padding: 8px 14px; display: inline-flex; align-items: center; gap: 8px; font-weight: 600; font-size: .9rem; }
+.icon-btn:hover { border-color: var(--accent); }
+.tipbar { background: var(--accent); color: var(--accent-ink); }
+.tipbar .wrap { display: flex; gap: 12px; align-items: baseline; flex-wrap: wrap; padding-block: 9px; }
+.tip-k { font-family: var(--f-head); font-weight: 800; text-transform: uppercase; font-size: .78rem; letter-spacing: .1em; white-space: nowrap; }
+#tipText { flex: 1 1 260px; min-width: 0; font-weight: 500; font-size: .95rem; }
+.tipcat { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; border: 1px solid currentColor; border-radius: 999px; padding: 1px 9px; white-space: nowrap; }
+
+/* nav */
+.nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; background: var(--panel); border-top: 1px solid var(--line);
+  display: grid; grid-template-columns: repeat(5, 1fr);
+  padding: 6px max(8px, env(safe-area-inset-right, 0px)) calc(6px + env(safe-area-inset-bottom, 0px)) max(8px, env(safe-area-inset-left, 0px)); }
+.nav button { background: none; border: 0; padding: 6px 2px; display: flex; flex-direction: column; align-items: center; gap: 2px; color: var(--fg2); font-size: .74rem; font-weight: 600; border-radius: 10px; }
+.nav button[aria-current="page"] { color: var(--accent); }
+.nav button[aria-current="page"] svg { transform: translateY(-1px) skewX(-8deg); }
+.nav svg { width: 24px; height: 24px; }
+@media (min-width: 860px) {
+  .nav { position: static; border: 0; border-bottom: 1px solid var(--line); padding: 0; background: var(--panel); display: block; }
+  .nav-in { display: flex; gap: 6px; max-width: 1080px; margin-inline: auto; padding: 6px max(16px, env(safe-area-inset-right, 0px)) 6px max(16px, env(safe-area-inset-left, 0px)); }
+  .nav button { flex-direction: row; gap: 8px; padding: 10px 16px; font-size: .95rem; }
+  .nav button[aria-current="page"] { background: var(--raised); }
+}
+.nav-in { display: contents; }
+@media (min-width: 860px) { .nav-in { display: flex; } }
+
+/* shared parts */
+main { padding-block: 22px 12px; min-height: 60vh; }
+.view[hidden] { display: none; }
+.sec { margin-bottom: 26px; }
+.sec > h2 { margin-bottom: 8px; }
+.card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; }
+.grid { display: grid; gap: 14px; }
+.g2 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr)); }
+.g4 { grid-template-columns: repeat(auto-fit, minmax(min(100%, 210px), 1fr)); }
+.btn { background: var(--accent); color: var(--accent-ink); border: 0; border-radius: 10px; padding: 10px 16px; font-weight: 700; font-family: var(--f-head); letter-spacing: .01em; transition: transform .12s ease, filter .12s ease; }
+.btn:hover { filter: brightness(1.08); transform: translateY(-1px); }
+.btn.ghost { background: var(--raised); color: var(--fg); border: 1px solid var(--line); font-family: var(--f-body); font-weight: 600; }
+.btn.ghost:hover { border-color: var(--accent); }
+.btn.sm { padding: 6px 12px; font-size: .88rem; border-radius: 8px; }
+.btn.danger { background: transparent; color: var(--bad); border: 1px solid var(--bad); }
+.row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.chip { display: inline-block; font-size: .75rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; background: var(--raised); border: 1px solid var(--line); color: var(--fg2); }
+.chip.red { background: transparent; border-color: var(--accent); color: var(--accent); }
+.src { margin-top: 22px; padding-top: 10px; border-top: 1px dashed var(--line); font-size: .8rem; color: var(--fg2); max-width: none; }
+label.l { display: block; font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--fg2); margin-bottom: 4px; }
+select, input[type=text], input[type=search], input[type=date], textarea {
+  width: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 9px; padding: 9px 11px; min-width: 0; }
+select:hover, input:hover, textarea:hover { border-color: var(--fg2); }
+textarea { min-height: 84px; resize: vertical; }
+details > summary { cursor: pointer; font-weight: 700; color: var(--accent); padding: 4px 0; }
+details > summary:hover { text-decoration: underline; }
+.callout { border-left: 4px solid var(--accent); background: var(--raised); border-radius: 0 10px 10px 0; padding: 10px 14px; margin-bottom: 14px; }
+.callout p:last-child { margin-bottom: 0; }
+.subtabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 6px; margin-bottom: 16px; -webkit-overflow-scrolling: touch; }
+.subtabs button { white-space: nowrap; background: var(--panel); border: 1px solid var(--line); border-radius: 999px; padding: 7px 14px; font-weight: 600; font-size: .92rem; }
+.subtabs button[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.tag-ss { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 8px; border-radius: 6px; border: 1px solid var(--focus); color: var(--focus); margin-left: 6px; vertical-align: middle; }
+
+/* home */
+.hero { padding: 26px 0 10px; }
+.hero p.lead { font-size: 1.15rem; color: var(--fg2); margin-top: 10px; }
+.cta-big { display: flex; align-items: center; justify-content: space-between; gap: 12px; width: 100%; text-align: left; background: var(--accent); color: var(--accent-ink);
+  border: 0; border-radius: 16px; padding: 18px 20px; margin-block: 16px 14px; font-family: var(--f-head); font-weight: 900; font-size: clamp(1.2rem, 4vw, 1.6rem); font-style: italic; text-transform: uppercase; transition: transform .15s ease; }
+.cta-big:hover { transform: translateX(3px) skewX(-2deg); }
+.cta-big small { display: block; font-family: var(--f-body); font-style: normal; text-transform: none; font-weight: 500; font-size: .95rem; opacity: .9; }
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); }
+.steps li { counter-increment: s; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px 14px 56px; position: relative; }
+.steps li::before { content: counter(s); position: absolute; left: 14px; top: 12px; width: 30px; height: 30px; display: grid; place-items: center; background: var(--accent); color: var(--accent-ink); font-family: var(--f-head); font-weight: 900; border-radius: 8px; transform: skewX(-8deg); }
+.quick { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); }
+.quick button { text-align: left; background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px; font-weight: 700; font-family: var(--f-head); }
+.quick button span { display: block; font-family: var(--f-body); font-weight: 400; color: var(--fg2); font-size: .88rem; margin-top: 2px; }
+.quick button:hover { border-color: var(--accent); }
+
+/* stat bars */
+.bars { display: grid; gap: 7px; }
+.sb { display: grid; grid-template-columns: 78px 1fr auto; gap: 8px; align-items: center; font-size: .9rem; }
+.sb .lab { font-weight: 600; }
+.sb .track { position: relative; height: 12px; background: var(--track); border-radius: 3px; transform: skewX(-14deg); overflow: visible; }
+.sb .fill { position: absolute; inset: 0 auto 0 0; background: var(--accent); border-radius: 3px; transition: width .35s ease; }
+.sb .mk { position: absolute; top: -4px; bottom: -4px; width: 3px; background: var(--fg); border-radius: 1px; transition: left .35s ease; }
+.sb .num { font-variant-numeric: tabular-nums; font-weight: 700; min-width: 7.2em; text-align: right; }
+.sb .d { font-size: .8rem; font-weight: 700; margin-left: 6px; }
+.d.up { color: var(--good); } .d.down { color: var(--bad); } .d.flat { color: var(--fg2); } .d.neu { color: var(--fg2); }
+.cap { font-size: .68rem; font-weight: 800; letter-spacing: .06em; border: 1px solid var(--fg2); color: var(--fg2); border-radius: 4px; padding: 0 4px; margin-left: 5px; cursor: help; }
+.bars.compact .sb { grid-template-columns: 70px 1fr auto; font-size: .84rem; }
+.bars.compact .track { height: 9px; }
+.legend { font-size: .8rem; color: var(--fg2); display: flex; gap: 14px; flex-wrap: wrap; margin-top: 8px; }
+.legend i { display: inline-block; width: 3px; height: 12px; background: var(--fg); vertical-align: -2px; margin-right: 4px; }
+
+/* calculator */
+.charsearch { position: relative; }
+.charlist { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; margin-top: 4px; max-height: 260px; overflow: auto; box-shadow: 0 8px 24px rgba(0,0,0,.25); }
+.charlist button { display: block; width: 100%; text-align: left; background: none; border: 0; padding: 8px 12px; }
+.charlist button:hover, .charlist button:focus { background: var(--raised); }
+.charlist small { color: var(--fg2); }
+.pickgrid { display: grid; gap: 10px; margin-bottom: 14px; }
+.chosen { font-size: .85rem; color: var(--fg2); margin-top: 4px; }
+
+/* recommender */
+.slider-row { display: grid; grid-template-columns: 100px 1fr 120px 110px; gap: 10px; align-items: center; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.slider-row:last-child { border-bottom: 0; }
+.slider-row input[type=range] { width: 100%; accent-color: var(--accent); }
+.slider-row .lv { font-size: .85rem; font-weight: 700; color: var(--accent); }
+.slider-row select { padding: 6px 8px; }
+@media (max-width: 640px) { .slider-row { grid-template-columns: 1fr 1fr; } .slider-row input[type=range] { grid-column: 1 / -1; order: 3; } }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.chips button { background: var(--raised); border: 1px solid var(--line); border-radius: 999px; padding: 3px 10px; font-size: .85rem; font-weight: 600; }
+.chips button::after { content: " \00d7"; color: var(--fg2); }
+.res { display: grid; gap: 14px; }
+.rc { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; display: grid; gap: 12px; grid-template-columns: 52px 1fr; }
+.rc .rank { font-family: var(--f-head); font-weight: 900; font-style: italic; font-size: 2rem; color: var(--accent); line-height: 1; }
+.rc .parts { display: grid; gap: 2px; font-size: .92rem; margin-bottom: 10px; }
+.rc .parts b { display: inline-block; min-width: 76px; color: var(--fg2); font-weight: 600; }
+.rc .why { font-size: .9rem; margin: 8px 0; }
+.rc table, table.t { width: 100%; border-collapse: collapse; font-size: .88rem; font-variant-numeric: tabular-nums; }
+.rc td, .rc th, table.t td, table.t th { padding: 4px 8px; border-bottom: 1px solid var(--line); text-align: right; }
+.rc th:first-child, .rc td:first-child, table.t th:first-child, table.t td:first-child { text-align: left; }
+.tbl { overflow-x: auto; }
+.ties { font-size: .85rem; margin-top: 4px; }
+.ties li { margin-bottom: 4px; }
+.note { font-size: .8rem; color: var(--fg2); }
+.owned { columns: 2 220px; column-gap: 20px; }
+.owned label { display: block; padding: 2px 0; font-size: .9rem; break-inside: avoid; }
+
+/* builds */
+.bcard { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 16px; display: grid; gap: 12px; }
+.bcard.main { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent) inset; }
+.bcard.ex { border-style: dashed; opacity: .92; }
+.bhead { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: space-between; }
+.star { background: none; border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; font-weight: 700; }
+.star[aria-pressed="true"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.rlist { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.rlist li { display: flex; gap: 8px; flex-wrap: wrap; align-items: baseline; background: var(--raised); border-radius: 8px; padding: 6px 10px; font-size: .9rem; }
+.rform { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); align-items: end; }
+.warnbox { border: 1px solid var(--bad); border-radius: 12px; padding: 10px 14px; margin-bottom: 14px; font-size: .92rem; }
+
+/* learn */
+.topic { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; margin-bottom: 12px; }
+.topic h3 { margin-bottom: 6px; }
+.special { background: var(--raised); border: 1px solid var(--accent); border-radius: 14px; padding: 14px 16px; margin-bottom: 14px; }
+.special h3 { color: var(--accent); }
+.check { display: flex; gap: 10px; align-items: flex-start; padding: 8px 0; border-bottom: 1px solid var(--line); }
+.check input { margin-top: 5px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+.check:last-child { border-bottom: 0; }
+.prog { height: 10px; background: var(--track); border-radius: 999px; overflow: hidden; margin: 6px 0 14px; }
+.prog i { display: block; height: 100%; background: var(--accent); width: 0; transition: width .3s ease; }
+dl.gl { margin: 0; }
+dl.gl dt { font-family: var(--f-head); font-weight: 800; margin-top: 12px; }
+dl.gl dd { margin: 2px 0 0; max-width: 68ch; }
+.sc-group { margin-bottom: 18px; }
+.sc { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.sc:last-child { border-bottom: 0; }
+
+.toast { position: fixed; left: 50%; bottom: calc(96px + env(safe-area-inset-bottom, 0px)); transform: translateX(-50%); background: var(--fg); color: var(--bg); padding: 9px 16px; border-radius: 999px; font-weight: 600; z-index: 40; max-width: 90vw; text-align: center; }
+@media (min-width: 860px) { .toast { bottom: 28px; } }
+footer { border-top: 1px solid var(--line); margin-top: 30px; padding-block: 18px 22px; font-size: .82rem; color: var(--fg2); }
+footer p { max-width: none; margin-bottom: 4px; }
+
+/* v2 additions: big calculator, pick tiles */
+.calc-grid { display: grid; gap: 14px; grid-template-columns: 1fr; max-width: 700px; }
+.calc-grid.two { max-width: none; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); }
+.bigpanel { padding: 18px; }
+.bigpanel .pickgrid { grid-template-columns: 1fr; margin: 12px 0 16px; }
+@media (min-width: 520px) { .bigpanel .pickgrid { grid-template-columns: 1fr 1fr; } .bigpanel .pickgrid .charsearch { grid-column: 1 / -1; } }
+.bigpanel select, .bigpanel input[type=search] { padding: 12px 12px; font-size: 1.05rem; font-weight: 600; background: var(--raised); }
+.bars.big { gap: 12px; }
+.bars.big .sb { grid-template-columns: 92px 1fr auto; font-size: 1.05rem; }
+.bars.big .track { height: 18px; }
+.bars.big .num { font-size: 1.35rem; font-family: var(--f-head); font-weight: 800; }
+.bars.big .d { font-family: var(--f-body); font-size: .85rem; }
+.pick4 { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 150px), 1fr)); margin-top: 10px; }
+.pick { text-align: left; background: var(--raised); border: 2px solid var(--line); border-radius: 12px; padding: 12px 14px; font-family: var(--f-head); font-weight: 800; font-size: 1.05rem; transition: transform .12s ease, border-color .12s ease; }
+.pick span { display: block; font-family: var(--f-body); font-weight: 400; font-size: .85rem; color: var(--fg2); margin-top: 2px; }
+.pick:hover { border-color: var(--accent); transform: translateY(-1px); }
+.pick[aria-pressed="true"] { border-color: var(--accent); background: var(--panel); box-shadow: 0 0 0 1px var(--accent) inset; }
+.pick[aria-pressed="true"]::before { content: "\2713  "; color: var(--accent); }
+.pick.sm { font-size: .95rem; padding: 9px 12px; }
+.keeps { display: grid; gap: 8px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 230px), 1fr)); margin-top: 10px; }
+.keeps .pick { font-size: .98rem; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+@keyframes rush { from { transform: translateX(-30px) skewX(-24deg); opacity: 0; } to { transform: translateX(0) skewX(-24deg); opacity: .18; } }
+.top::after { animation: rush .7s ease-out both; }
+</style>
+</head>
+<body>
+<noscript><p style="padding:16px;font-family:sans-serif">Pit Stop Helper needs JavaScript turned on to work.</p></noscript>
+
+
+<div class="top"><div class="wrap top-in">
+  <button class="logo" data-go="home" aria-label="Pit Stop Helper, go to Home">
+    <svg width="38" height="38" viewBox="0 0 38 38" aria-hidden="true"><rect width="38" height="38" rx="9" fill="var(--accent)"/><path d="M9 26 L17 12 L21 12 L13 26 Z M17 26 L25 12 L29 12 L21 26 Z" fill="var(--accent-ink)"/></svg>
+    <span><b>Pit Stop Helper</b><small>Mario Kart 8 Deluxe</small></span>
+  </button>
+  <button class="icon-btn" id="themeBtn" type="button"><span id="themeLbl">Dark</span></button>
+</div></div>
+<div class="tipbar" role="note"><div class="wrap"><span class="tip-k">Tip of the day</span><span id="tipText"></span><span class="tipcat" id="tipCat"></span></div></div>
+
+<nav class="nav" id="nav" aria-label="Main"><div class="nav-in">
+  <button data-go="home" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M3 11 12 3l9 8v10h-6v-6H9v6H3z"/></svg>Home</button>
+  <button data-go="calc" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 7h8M8 12h2M14 12h2M8 16h2M14 16h2"/></svg>Calculator</button>
+  <button data-go="learn" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h7a3 3 0 0 1 3 3v12a2 2 0 0 0-2-2H4zM20 5h-6"/><path d="M20 5v13h-6"/></svg>Learn</button>
+  <button data-go="builds" type="button"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 2.7 5.6 6.1.8-4.5 4.2 1.1 6-5.4-3-5.4 3 1.1-6L3.2 9.4l6.1-.8z"/></svg>My Builds</button>
+  <button data-go="more" type="button"><svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>More</button>
+</div></nav>
+
+<main class="wrap" id="main">
+
+<!-- HOME -->
+<section class="view" id="v-home" data-view="home">
+  <div class="hero">
+    <h1>Build it. Drive it. Win it.</h1>
+    <p class="lead">Back on the track after a break? Start here.</p>
+  </div>
+  <button class="cta-big" type="button" data-go="recommend"><span>Recommend me a build<small>Pick your style and get your top 5 builds</small></span><span aria-hidden="true">&rarr;</span></button>
+  <div class="sec"><h2>Start here in three steps</h2><ol class="steps">
+    <li><h3>Learn the stats</h3><p class="muted">Six stats decide how a kart drives. One of them is hidden.</p></li>
+    <li><h3>Pick a build</h3><p class="muted">Use the calculator, or let the recommender pick for your style.</p></li>
+    <li><h3>Practice</h3><p class="muted">Test one build for a few laps, then log how it felt.</p></li>
+  </ol></div>
+  <div class="sec"><h2>Jump to</h2><div class="quick">
+    <button type="button" data-go="calc">Open the calculator<span>Pick parts, see all six stats</span></button>
+    <button type="button" data-go="learn" data-sub="stats">Stats 101<span>What each stat does</span></button>
+    <button type="button" data-go="learn" data-sub="check">Comeback checklist<span>Steps for returning players</span></button>
+    <button type="button" data-go="builds">My builds<span>Saved on this device</span></button>
+  </div></div>
+  <p class="src">Sources: Nintendo Life Mario Kart 8 Deluxe stat tables (used for every number on this site). See About for the full list.</p>
+</section>
+
+<!-- CALCULATOR -->
+<section class="view" id="v-calc" data-view="calc" hidden>
+  <div class="sec"><h2>Build calculator</h2>
+    <p class="muted">Pick four parts. Your six stats show up right away.</p></div>
+  <div class="calc-grid" id="calcPanels"></div>
+  <div class="legend" id="calcLegend" hidden><span><i></i>Black mark = the other build</span><span>&#9650; more, &#9660; less. Green is better, red is worse. Weight stays gray, because heavier is not always better.</span></div>
+  <p class="note" style="margin-top:10px"><b class="cap">MAX</b> or <b class="cap">MIN</b> means that stat hit the game's limit.</p>
+  <div class="row" style="margin-top:12px">
+    <button class="btn" type="button" id="cmpBtn">Compare with another build</button>
+    <button class="btn ghost" type="button" data-go="recommend">Recommend me a build</button>
+  </div>
+  <details class="card" id="calcMore" style="margin-top:14px"><summary>Save, share or reset</summary>
+    <div class="row" style="margin-top:10px">
+      <button class="btn sm" type="button" data-save="A">Save to My Builds</button>
+      <button class="btn sm" type="button" id="saveB" data-save="B" hidden>Save the compare build</button>
+      <button class="btn ghost sm" type="button" data-copycode="A">Copy build code</button>
+      <button class="btn ghost sm" type="button" data-reset="A">Reset</button>
+    </div>
+    <h4 style="margin-top:14px">Load a build code</h4>
+    <p class="note">Codes look like <b>b-13-30-17-4</b>. To share a build, copy its code and add <b>#</b> and the code to the end of this site's link.</p>
+    <div class="row"><input type="text" id="codeIn" placeholder="b-13-30-17-4" aria-label="Build code" style="max-width:240px"><button class="btn ghost sm" id="codeLoad" type="button">Load it</button></div>
+  </details>
+  <p class="src">Sources: Nintendo Life numbers. Miis are not included.</p>
+</section>
+
+<!-- RECOMMEND -->
+<section class="view" id="v-recommend" data-view="recommend" hidden>
+  <div class="sec"><h2>Recommend me a build</h2>
+    <p class="muted">Answer three quick questions and get your 5 best builds.</p>
+  </div>
+  <div class="card sec">
+    <h3>1. What do you want most?</h3>
+    <div class="pick4" id="q1"></div>
+    <h4 style="margin-top:16px">Also nice to have (optional)</h4>
+    <div class="pick4" id="q1b"></div>
+  </div>
+  <div class="card sec">
+    <h3>2. What can't you give up?</h3>
+    <p class="note">Tap any that matter. Builds that fall short of these are skipped.</p>
+    <div class="keeps" id="q2"></div>
+  </div>
+  <div class="card sec">
+    <h3>3. Which characters?</h3>
+    <p class="note" id="favNote">Any character. Search to pick only your favorites.</p>
+    <div class="charsearch"><input type="search" id="favIn" placeholder="Search a character, like Wario" autocomplete="off" aria-label="Search characters"><div class="charlist" id="favList" hidden></div></div>
+    <div class="chips" id="favChips"></div>
+  </div>
+  <div class="sec"><h2>Your top builds</h2><div id="recSummary" class="note"></div><div class="res" id="recRes" aria-live="polite"></div>
+    <div class="row" style="margin-top:12px"><button class="btn" type="button" id="recMore">Show 5 more</button></div></div>
+  <div class="card sec">
+    <details id="fineDetails"><summary>Fine-tune</summary>
+      <p class="note">Each slider says how much that stat matters to you. The box next to it is a number a build can't go below.</p>
+      <div id="sliders"></div>
+      <h4 style="margin-top:14px">Parts I own</h4>
+      <p class="note">Untick anything you don't have. Some parts must be unlocked or come from add-on content, and this site can't check that for you. This is saved on this device.</p>
+      <div class="row" style="margin-bottom:8px"><button class="btn ghost sm" type="button" id="ownAll">Tick everything</button></div>
+      <div id="ownDetails">
+        <h4>Karts and bikes</h4><div class="owned" id="ownB"></div>
+        <h4 style="margin-top:10px">Tires</h4><div class="owned" id="ownT"></div>
+        <h4 style="margin-top:10px">Gliders</h4><div class="owned" id="ownG"></div>
+      </div>
+    </details>
+  </div>
+  <p class="src">Sources: Nintendo Life numbers. Picks come from the numbers, not from race results. Master Cycle Zero, Ancient Tires and the Paraglider are left out until their numbers are confirmed.</p>
+</section>
+
+<!-- LEARN -->
+<section class="view" id="v-learn" data-view="learn" hidden>
+  <div class="subtabs" id="learnTabs" role="group" aria-label="Learn sections"></div>
+  <div id="learnBody"></div>
+</section>
+
+<!-- MY BUILDS -->
+<section class="view" id="v-builds" data-view="builds" hidden>
+  <div class="sec"><h2>My builds</h2>
+    <p class="muted">Save builds, log how they did, and star your main one. The star is what the calculator compares to.</p>
+  </div>
+  <div class="warnbox" id="storeWarn"><b>Saved on this device only.</b> Clearing your browser data erases these builds, and other devices cannot see them. Use <b>Copy all builds as text</b> below to keep a backup.</div>
+  <div class="row sec"><button class="btn" type="button" id="newBuild">Add a build</button>
+    <button class="btn ghost" type="button" id="copyAll">Copy all builds as text</button>
+    <button class="btn ghost" type="button" id="toggleImport">Load builds from text</button></div>
+  <div class="card sec" id="importBox" hidden><label class="l" for="importTa">Paste copied builds text</label><textarea id="importTa"></textarea>
+    <div class="row" style="margin-top:8px"><button class="btn sm" type="button" id="importGo">Add these builds</button></div></div>
+  <div id="editorBox"></div>
+  <div class="grid" id="buildList"></div>
+  <p class="src">Sources: stats come from Nintendo Life. Results and notes are yours.</p>
+</section>
+
+<!-- MORE -->
+<section class="view" id="v-more" data-view="more" hidden>
+  <div class="subtabs" id="moreTabs" role="group" aria-label="More sections"></div>
+  <div id="moreBody"></div>
+</section>
+
+</main>
+
+<footer><div class="wrap">
+  <p>Pit Stop Helper is an unofficial fan project. It is not made by or connected to Nintendo. Mario Kart is a trademark of Nintendo.</p>
+  <p>&copy; 2026 Swipestars. All rights reserved.</p>
+</div></footer>
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script>
+"use strict";
+/* ============================== DATA ============================== */
+var STAT = ["Speed", "Acceleration", "Weight", "Handling", "Traction", "Mini-Turbo"];
+var SHORT = ["Speed", "Accel", "Weight", "Handling", "Traction", "Mini-Turbo"];
+var LO = 0.75, HI = 5.75;
+
+var CHARS = [
+  { names: ["Baby Peach", "Baby Daisy"], s: [2.5, 4, 2, 5, 4.25, 4] },
+  { names: ["Baby Rosalina", "Lemmy"], s: [2.5, 4.25, 2, 4.75, 3.75, 4] },
+  { names: ["Baby Mario", "Baby Luigi", "Dry Bones"], s: [2.75, 4.25, 2.25, 4.5, 4, 4] },
+  { names: ["Koopa Troopa", "Lakitu", "Bowser Jr."], s: [3, 4, 2.5, 4.5, 4.25, 3.75] },
+  { names: ["Toadette", "Wendy", "Isabelle"], s: [3, 4.25, 2.5, 4.25, 3.5, 3.75] },
+  { names: ["Toad", "Shy Guy", "Larry"], s: [3.25, 4, 2.75, 4.25, 4, 3.75] },
+  { names: ["Cat Peach", "Inkling Girl", "Villager Girl"], s: [3.5, 4, 2.75, 4, 3.75, 3.75] },
+  { names: ["Peach", "Daisy", "Yoshi", "Birdo"], s: [3.75, 3.75, 3, 3.75, 3.75, 3.75] },
+  { names: ["Tanooki Mario", "Inkling Boy", "Villager Boy"], s: [3.75, 3.75, 3.25, 3.75, 3.25, 3.75] },
+  { names: ["Luigi", "Iggy", "Kamek"], s: [4, 3.5, 3.5, 3.75, 3.25, 3.5] },
+  { names: ["Mario", "Ludwig"], s: [4, 3.5, 3.5, 3.5, 3.5, 3.25] },
+  { names: ["Link", "King Boo", "Rosalina"], s: [4.25, 3.25, 3.75, 3.25, 3.75, 3.25] },
+  { names: ["Metal Mario", "Gold Mario", "Pink Gold Peach", "Petey Piranha"], s: [4.25, 3.25, 4.5, 3.25, 3.25, 3] },
+  { names: ["Donkey Kong", "Roy", "Waluigi", "Wiggler"], s: [4.5, 3.25, 4, 3, 3, 3] },
+  { names: ["Wario", "Dry Bowser"], s: [4.75, 3, 4.25, 2.75, 3.25, 2.75] },
+  { names: ["Bowser", "Morton"], s: [4.75, 3, 4.5, 2.5, 3, 2.75] }
+];
+var CHAR_LIST = [];
+CHARS.forEach(function (c, gi) { c.names.forEach(function (n) { CHAR_LIST.push({ n: n, g: gi }); }); });
+
+function P(n, a) { return { n: n, s: a }; }
+var STD = [0, 0, 0, 0, 0, 0];
+var PIPE = [-0.5, 0.5, -0.25, 0.5, 0.25, 0.5], MACH = [0, -0.25, 0.25, -0.25, 0.25, 0], CATC = [-0.25, 0.25, 0, 0.25, 0, 0.25];
+var STEEL = [0.25, -0.75, 0.5, -0.5, 0, -0.5], CIRC = [0.5, -0.75, 0.25, -0.5, -0.5, -0.75], BADW = [0.5, -1, 0.5, -0.75, 0.5, -1];
+var PRAN = [0.25, -0.5, -0.25, 0, -0.25, -0.25], BIDDY = [-0.75, 0.75, -0.5, 0.5, 0.5, 0.25], LAND = [-0.5, 0.5, -0.5, -0.5, 0.75, 0.5];
+var SNEEK = [0.25, -0.5, 0, 0, -0.75, -0.25], SPORTS = [0, -0.25, 0.25, -0.25, 0.25, 0], SILV = [-0.25, 0.25, -0.25, 0.25, 0.5, 0.25];
+var FALC = [0.25, -0.25, -0.5, -0.25, 0.5, 0], TANK = [-0.25, -0.5, 0.25, 0.25, 0, 1], BDASH = [0.5, -0.75, 0.25, -0.5, -0.25, -0.5];
+var STREET = [-0.5, 0.5, -0.5, -0.5, -0.25, 0.75], SBIKE = [-0.25, 0.25, -0.25, 0.25, 0.5, 0.25], SPORTB = [0.25, -0.5, -0.25, 0, -0.25, -0.25];
+var VARM = [-0.5, 0.5, -0.25, 0.5, 0.25, 0.5], SCOOT = [-0.75, 0.75, -0.5, 0.5, 0.25, 0.75], INK = [0, -0.25, 0.25, -0.25, 0.25, 0], SPLAT = [0.25, -0.25, -0.5, -0.25, 0, -0.25];
+
+var BODIES = [
+  P("Standard Kart", STD), P("Pipe Frame", PIPE), P("Mach 8", MACH), P("Cat Cruiser", CATC), P("Steel Driver", STEEL),
+  P("Circuit Special", CIRC), P("Tri-Speeder", STEEL), P("Badwagon", BADW), P("Prancer", PRAN), P("Biddybuggy", BIDDY),
+  P("Landship", LAND), P("Sneeker", SNEEK), P("Sports Coupe", SPORTS), P("Gold Standard", SNEEK), P("Mercedes GLA", BADW),
+  P("Silver Arrow", SILV), P("300 SL Roadster", STD), P("Blue Falcon", FALC), P("Tanooki Kart", TANK), P("B Dasher", BDASH),
+  P("Streetle", STREET), P("P-Wing", BDASH), P("Koopa Clown", TANK), P("Standard Bike", SBIKE), P("Comet", CATC),
+  P("Sport Bike", SPORTB), P("The Duke", STD), P("Flame Rider", SBIKE), P("Varmint", VARM), P("Mr. Scooty", SCOOT),
+  P("Jet Bike", SPORTB), P("Yoshi Bike", CATC), P("Master Cycle", SNEEK), P("City Tripper", VARM), P("Standard ATV", BADW),
+  P("Wild Wiggler", SBIKE), P("Teddy Buggy", CATC), P("Bone Rattler", STEEL), P("Inkstriker", INK), P("Splat Buggy", SPLAT)
+];
+var MONS = [0, -0.5, 0.5, -0.75, 0.5, -0.25], ROLL = [-0.5, 0.5, -0.5, 0.25, -0.25, 0.75], SLIM = [0.25, -0.5, 0, 0.25, -1, -0.25];
+var SLICK = [0.5, -0.75, 0.25, -0.25, -1.25, -0.75], METAL = [0.5, -1, 0.5, -0.25, -0.75, -0.75], BUTTON = [-0.25, 0.25, -0.5, 0, -0.5, 0.5];
+var OFFR = [0.25, -0.25, 0.25, -0.5, 0.25, -0.5], SPONGE = [-0.25, 0, -0.25, -0.25, 0.25, 0.25];
+var TIRES = [
+  P("Standard", STD), P("GLA", STD), P("Blue Standard", STD), P("Monster", MONS), P("Hot Monster", MONS), P("Roller", ROLL),
+  P("Azure Roller", ROLL), P("Slim", SLIM), P("Crimson Slim", SLIM), P("Wood", SLIM), P("Slick", SLICK), P("Cyber Slick", SLICK),
+  P("Metal", METAL), P("Gold Tires", METAL), P("Button", BUTTON), P("Leaf", BUTTON), P("Off-Road", OFFR), P("Retro Off-Road", OFFR),
+  P("Triforce", OFFR), P("Sponge", SPONGE), P("Cushion", SPONGE)
+];
+var CLOUD = [-0.25, 0.25, -0.25, 0, 0, 0.25], PARA = [-0.25, 0.25, 0, 0, -0.25, 0.25], PLANE = [0, 0, 0.25, 0, -0.25, 0];
+var GLIDERS = [
+  P("Super Glider", STD), P("Waddle Wing", STD), P("Hylian Kite", STD), P("Cloud Glider", CLOUD), P("Paper Glider", CLOUD),
+  P("Flower Glider", CLOUD), P("Parachute", CLOUD), P("Peach Parasol", CLOUD), P("Parafoil", PARA), P("Bowser Kite", PARA),
+  P("MKTV Parafoil", PARA), P("Plane Glider", PLANE), P("Gold Glider", PLANE), P("Wario Wing", PLANE)
+];
+function idxOf(list, name) { for (var i = 0; i < list.length; i++) { if ((list[i].n || list[i]) === name) { return i; } } return -1; }
+
+/* ============================== ENGINE ============================== */
+function clamp(v) { return Math.max(LO, Math.min(HI, v)); }
+function fmt(v) { var s = (Math.round(v * 100) / 100).toFixed(2); return s.replace(/0$/, ""); }
+function fmtD(d) { return (d > 0 ? "+" : d < 0 ? "−" : "") + fmt(Math.abs(d)); }
+function buildStats(ch, b, t, g) {
+  var raw = [], v = [];
+  for (var i = 0; i < 6; i++) {
+    var r = CHARS[CHAR_LIST[ch].g].s[i] + BODIES[b].s[i] + TIRES[t].s[i] + GLIDERS[g].s[i];
+    raw.push(r); v.push(clamp(r));
+  }
+  return { raw: raw, v: v };
+}
+var WLEVEL = [0, 1, 2, 4, 8];
+var LEVELS = ["Not important", "A little", "Important", "Very important", "Must have"];
+var PRESETS = {
+  speed: { label: "Speed", w: [4, 2, 1, 1, 2, 1], min: [null, 3, null, null, 3, null], why: "Weighs Speed most, and keeps Accel and Traction at 3 or more." },
+  accel: { label: "Accel", w: [1, 4, 1, 2, 2, 1], min: [3, null, null, 2, 3, null], why: "Weighs Acceleration most, and keeps Speed at 3 or more." },
+  handling: { label: "Handling", w: [2, 2, 1, 4, 2, 1], min: [3, 3, null, null, null, null], why: "Weighs Handling most, and keeps Speed and Accel at 3 or more." },
+  mt: { label: "Mini-Turbo", w: [1, 2, 1, 2, 1, 4], min: [3, 3, null, null, null, null], why: "Weighs Mini-Turbo most, and keeps Speed and Accel at 3 or more." }
+};
+function classesOf(list, disowned) {
+  var m = {}, out = [];
+  list.forEach(function (p, i) {
+    if (disowned[p.n]) { return; }
+    var k = p.s.join(",");
+    if (!m[k]) { m[k] = { s: p.s, names: [], idx: [] }; out.push(m[k]); }
+    m[k].names.push(p.n); m[k].idx.push(i);
+  });
+  return out;
+}
+function recommend(prefs) {
+  var dis = prefs.disowned || {};
+  var bc = classesOf(BODIES, dis), tc = classesOf(TIRES, dis), gc = classesOf(GLIDERS, dis);
+  var W = prefs.w.map(function (l) { return WLEVEL[l]; });
+  var allZero = W.every(function (x) { return x === 0; });
+  var favs = prefs.favs || [];
+  var groups = [];
+  for (var gi = 0; gi < CHARS.length; gi++) {
+    if (!favs.length || CHARS[gi].names.some(function (n) { return favs.indexOf(n) >= 0; })) { groups.push(gi); }
+  }
+  var out = [], maxes = [-1, -1, -1, -1, -1, -1];
+  groups.forEach(function (gi) {
+    var cs = CHARS[gi].s;
+    bc.forEach(function (B) { tc.forEach(function (T) { gc.forEach(function (G) {
+      var v = new Array(6), ok = true, score = 0, sum = 0;
+      for (var i = 0; i < 6; i++) {
+        v[i] = clamp(cs[i] + B.s[i] + T.s[i] + G.s[i]);
+        if (prefs.min[i] != null && v[i] < prefs.min[i] - 1e-9) { ok = false; break; }
+        score += (allZero ? 1 : W[i]) * v[i]; sum += v[i];
+      }
+      if (!ok) { return; }
+      for (var j = 0; j < 6; j++) { if (v[j] > maxes[j]) { maxes[j] = v[j]; } }
+      out.push({ score: score, sum: sum, v: v, gi: gi, B: B, T: T, G: G });
+    }); }); });
+  });
+  out.sort(function (a, b) { return (b.score - a.score) || (b.sum - a.sum) || (b.v[0] - a.v[0]) || (a.gi - b.gi); });
+  var res = [], cur = null;
+  out.forEach(function (o) {
+    var k = o.score.toFixed(6);
+    if (!cur || cur.key !== k) { cur = { key: k, items: [] }; res.push(cur); }
+    cur.items.push(o);
+  });
+  return { groups: res, count: out.length, maxes: maxes, allZero: allZero };
+}
+
+/* ============================== STORAGE ============================== */
+var mem = {};
+var storeOK = true;
+function lsGet(k, d) {
+  try { var s = window.localStorage.getItem(k); if (s === null) { return k in mem ? mem[k] : d; } return JSON.parse(s); }
+  catch (e) { storeOK = false; return k in mem ? mem[k] : d; }
+}
+function lsSet(k, v) {
+  mem[k] = v;
+  try { window.localStorage.setItem(k, JSON.stringify(v)); }
+  catch (e) { storeOK = false; }
+}
+
+/* ============================== HELPERS ============================== */
+function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+function $(id) { return document.getElementById(id); }
+function uid() { return "b" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+var toastT = null;
+function toast(msg) {
+  var t = $("toast"); t.textContent = msg; t.hidden = false;
+  clearTimeout(toastT); toastT = setTimeout(function () { t.hidden = true; }, 2400);
+}
+function copyText(text, okMsg) {
+  function fallback() {
+    var box = document.createElement("div");
+    box.className = "card"; box.style.cssText = "position:fixed;left:16px;right:16px;bottom:100px;z-index:50;";
+    box.innerHTML = '<p class="small">Copy this text:</p><textarea readonly></textarea><div class="row" style="margin-top:8px"><button class="btn sm" type="button">Close</button></div>';
+    var ta = box.querySelector("textarea"); ta.value = text;
+    box.querySelector("button").addEventListener("click", function () { box.remove(); });
+    document.body.appendChild(box); ta.focus(); ta.select();
+  }
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(function () { toast(okMsg || "Copied"); }, fallback);
+    } else { fallback(); }
+  } catch (e) { fallback(); }
+}
+function today() { var d = new Date(); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+
+/* stat bars. cmp = {v:[...]} to compare, label for aria */
+function barsHTML(st, cmp, compact, big) {
+  var h = '<div class="bars' + (compact ? " compact" : "") + (big ? " big" : "") + '">';
+  for (var i = 0; i < 6; i++) {
+    var v = st.v[i], pct = Math.max(2, (v / HI) * 100);
+    var cap = "";
+    if (st.raw && Math.abs(st.raw[i] - v) > 1e-9) { cap = '<span class="cap" title="Raw total ' + fmt(st.raw[i]) + ' was cut to ' + fmt(v) + '">' + (v >= HI ? "MAX" : "MIN") + "</span>"; }
+    else if (v >= HI) { cap = '<span class="cap" title="At the 5.75 maximum">MAX</span>'; }
+    else if (v <= LO) { cap = '<span class="cap" title="At the 0.75 minimum">MIN</span>'; }
+    var mk = "", d = "";
+    if (cmp) {
+      mk = '<i class="mk" style="left:' + ((cmp.v[i] / HI) * 100) + '%"></i>';
+      var diff = v - cmp.v[i];
+      if (Math.abs(diff) < 1e-9) { d = '<span class="d flat">same</span>'; }
+      else {
+        var arrow = diff > 0 ? "▲" : "▼";
+        var cls = i === 2 ? "neu" : (diff > 0 ? "up" : "down");
+        d = '<span class="d ' + cls + '">' + arrow + " " + fmtD(diff) + "</span>";
+      }
+    }
+    h += '<div class="sb"><span class="lab">' + SHORT[i] + '</span><span class="track" aria-hidden="true"><span class="fill" style="width:' + pct + '%"></span>' + mk + '</span><span class="num">' + fmt(v) + cap + d + "</span></div>";
+  }
+  return h + "</div>";
+}
+
+/* ============================== BUILD PANELS (shared picker) ============================== */
+function optionsHTML(list, sel) {
+  return list.map(function (p, i) { return '<option value="' + i + '"' + (i === sel ? " selected" : "") + ">" + esc(p.n) + "</option>"; }).join("");
+}
+function panelHTML(key, title, big) {
+  return '<div class="card' + (big ? " bigpanel" : "") + '" id="pn-' + key + '">' +
+    '<h3>' + esc(title) + '</h3>' +
+    '<div class="pickgrid">' +
+    '<div class="charsearch"><label class="l" for="ch-' + key + '">Character</label><input type="search" id="ch-' + key + '" autocomplete="off" placeholder="Search a character"><div class="charlist" id="cl-' + key + '" hidden></div><div class="chosen" id="cs-' + key + '"></div></div>' +
+    '<div><label class="l" for="bd-' + key + '">Kart or bike</label><select id="bd-' + key + '"></select></div>' +
+    '<div><label class="l" for="tr-' + key + '">Tires</label><select id="tr-' + key + '"></select></div>' +
+    '<div><label class="l" for="gl-' + key + '">Glider</label><select id="gl-' + key + '"></select></div></div>' +
+    '<div id="st-' + key + '"></div>' +
+    '<div id="sv-' + key + '"></div></div>';
+}
+var panels = {};
+function mountPanel(key, state, onChange) {
+  panels[key] = { s: state, cb: onChange };
+  $("bd-" + key).innerHTML = optionsHTML(BODIES, state.b);
+  $("tr-" + key).innerHTML = optionsHTML(TIRES, state.t);
+  $("gl-" + key).innerHTML = optionsHTML(GLIDERS, state.g);
+  $("ch-" + key).value = "";
+  ["bd", "tr", "gl"].forEach(function (p, n) {
+    $(p + "-" + key).addEventListener("change", function (e) {
+      state[["b", "t", "g"][n]] = parseInt(e.target.value, 10); changed(key);
+    });
+  });
+  var inp = $("ch-" + key), list = $("cl-" + key);
+  function show() {
+    var q = inp.value.trim().toLowerCase();
+    var m = CHAR_LIST.map(function (c, i) { return { c: c, i: i }; }).filter(function (o) { return !q || o.c.n.toLowerCase().indexOf(q) >= 0; }).slice(0, 10);
+    if (!m.length) { list.innerHTML = '<div style="padding:8px 12px" class="muted small">No match</div>'; list.hidden = false; return; }
+    list.innerHTML = m.map(function (o) { return '<button type="button" data-ci="' + o.i + '">' + esc(o.c.n) + ' <small>' + esc(CHARS[o.c.g].names.join(" / ")) + "</small></button>"; }).join("");
+    list.hidden = false;
+  }
+  inp.addEventListener("input", show);
+  inp.addEventListener("focus", show);
+  inp.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") { e.preventDefault(); var b = list.querySelector("button"); if (b) { b.click(); } }
+    if (e.key === "Escape") { list.hidden = true; }
+  });
+  list.addEventListener("mousedown", function (e) { e.preventDefault(); });
+  list.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-ci]"); if (!b) { return; }
+    state.ch = parseInt(b.getAttribute("data-ci"), 10); inp.value = ""; list.hidden = true; changed(key);
+  });
+  inp.addEventListener("blur", function () { setTimeout(function () { list.hidden = true; }, 120); });
+  refreshPanel(key);
+}
+function changed(key) { refreshPanel(key); if (panels[key].cb) { panels[key].cb(key); } }
+function setPanel(key, st) {
+  var p = panels[key]; if (!p) { return; }
+  p.s.ch = st.ch; p.s.b = st.b; p.s.t = st.t; p.s.g = st.g;
+  $("bd-" + key).value = st.b; $("tr-" + key).value = st.t; $("gl-" + key).value = st.g;
+  changed(key);
+}
+function refreshPanel(key) {
+  var s = panels[key].s;
+  $("cs-" + key).innerHTML = "<b>" + esc(CHAR_LIST[s.ch].n) + "</b> drives like " + esc(CHARS[CHAR_LIST[s.ch].g].names.join(" / "));
+}
+
+/* ============================== MY BUILDS DATA ============================== */
+function getBuilds() { var b = lsGet("psh.builds", []); return Array.isArray(b) ? b : []; }
+function saveBuilds(b) { lsSet("psh.builds", b); }
+function buildIdx(b) { return { ch: idxOf(CHAR_LIST, b.ch), b: idxOf(BODIES, b.b), t: idxOf(TIRES, b.t), g: idxOf(GLIDERS, b.g) }; }
+function validBuild(b) { var x = buildIdx(b); return x.ch >= 0 && x.b >= 0 && x.t >= 0 && x.g >= 0; }
+function statsOfBuild(b) { var x = buildIdx(b); return buildStats(x.ch, x.b, x.t, x.g); }
+function mainBuild() { var l = getBuilds().filter(function (b) { return b.star && validBuild(b); }); return l.length ? l[0] : null; }
+function stateToRecord(name, s) {
+  return { id: uid(), name: name, ch: CHAR_LIST[s.ch].n, b: BODIES[s.b].n, t: TIRES[s.t].n, g: GLIDERS[s.g].n, star: false, results: [], notes: "", created: today() };
+}
+function codeOf(s) { return "b-" + s.ch + "-" + s.b + "-" + s.t + "-" + s.g; }
+function parseCode(c) {
+  var m = /^b-(\d+)-(\d+)-(\d+)-(\d+)$/.exec(String(c).trim());
+  if (!m) { return null; }
+  var o = { ch: +m[1], b: +m[2], t: +m[3], g: +m[4] };
+  if (o.ch >= CHAR_LIST.length || o.b >= BODIES.length || o.t >= TIRES.length || o.g >= GLIDERS.length) { return null; }
+  return o;
+}
+
+/* ============================== CALCULATOR VIEW ============================== */
+function calcDefaults() {
+  return {
+    A: { ch: idxOf(CHAR_LIST, "Wario"), b: idxOf(BODIES, "Silver Arrow"), t: idxOf(TIRES, "Off-Road"), g: idxOf(GLIDERS, "Hylian Kite") },
+    B: { ch: idxOf(CHAR_LIST, "Waluigi"), b: idxOf(BODIES, "The Duke"), t: idxOf(TIRES, "Off-Road"), g: idxOf(GLIDERS, "Hylian Kite") }
+  };
+}
+var calc = calcDefaults();
+var calcCmp = false;
+function initCalc() {
+  $("calcPanels").innerHTML = panelHTML("A", "Your build", true) + panelHTML("B", "Compare build", true);
+  mountPanel("A", calc.A, updateCalc); mountPanel("B", calc.B, updateCalc);
+  $("cmpBtn").addEventListener("click", function () {
+    calcCmp = !calcCmp;
+    if (calcCmp) { var m = mainBuild(); if (m) { setPanel("B", buildIdx(m)); } }
+    updateCalc();
+  });
+  $("codeLoad").addEventListener("click", function () {
+    var o = parseCode($("codeIn").value);
+    if (!o) { toast("That code is not valid. It looks like b-13-30-17-4"); return; }
+    setPanel("A", o); toast("Loaded");
+  });
+  updateCalc();
+}
+function updateCalc() {
+  $("cmpBtn").textContent = calcCmp ? "Stop comparing" : "Compare with another build";
+  $("pn-B").hidden = !calcCmp;
+  $("saveB").hidden = !calcCmp;
+  $("calcLegend").hidden = !calcCmp;
+  $("calcPanels").className = "calc-grid" + (calcCmp ? " two" : "");
+  var a = buildStats(calc.A.ch, calc.A.b, calc.A.t, calc.A.g), b = buildStats(calc.B.ch, calc.B.b, calc.B.t, calc.B.g);
+  $("st-A").innerHTML = barsHTML(a, calcCmp ? b : null, false, true);
+  $("st-B").innerHTML = barsHTML(b, calcCmp ? a : null, false, true);
+}
+function saveFlow(key, s) {
+  var box = $("sv-" + key);
+  box.innerHTML = '<div class="row" style="margin-top:12px"><input type="text" id="svn-' + key + '" placeholder="Name this build" aria-label="Build name" style="flex:1 1 160px;max-width:300px" value="' + esc(CHAR_LIST[s.ch].n + " " + BODIES[s.b].n) + '"><button class="btn sm" type="button" id="svg-' + key + '">Save</button></div>';
+  $("svn-" + key).focus(); $("svn-" + key).select();
+  $("svg-" + key).addEventListener("click", function () {
+    var name = $("svn-" + key).value.trim() || "My build";
+    var l = getBuilds(); l.unshift(stateToRecord(name, s));
+    if (l.length === 1) { l[0].star = true; }
+    saveBuilds(l); box.innerHTML = ""; toast("Saved to My Builds");
+  });
+}
+
+/* ============================== RECOMMEND VIEW ============================== */
+var STYLE = {
+  speed: { i: 0, label: "Speed", sub: "Faster on straights", keeps: ["quick", "grip"] },
+  accel: { i: 1, label: "Accel", sub: "Back up to speed quickly", keeps: ["slow", "grip"] },
+  handling: { i: 3, label: "Handling", sub: "Sharper turns", keeps: ["slow", "quick"] },
+  mt: { i: 5, label: "Mini-Turbo", sub: "Stronger drift boosts", keeps: ["slow", "quick"] }
+};
+var STYLE_ORDER = ["speed", "accel", "handling", "mt"];
+var KEEP = {
+  quick: { i: 1, v: 3, label: "Get back up to speed fast", sub: "Accel 3 or more" },
+  grip: { i: 4, v: 3, label: "Keep my grip on rough ground", sub: "Traction 3 or more" },
+  slow: { i: 0, v: 3, label: "Don't let me go too slow", sub: "Speed 3 or more" },
+  turns: { i: 3, v: 2.5, label: "Keep my turns sharp", sub: "Handling 2.5 or more" },
+  heavy: { i: 2, v: 3.5, label: "Keep me heavy in bumps", sub: "Weight 3.5 or more" }
+};
+var KEEP_ORDER = ["quick", "grip", "slow", "turns", "heavy"];
+function deriveW(main, second) {
+  var w = [1, 1, 1, 1, 2, 1]; w[STYLE[main].i] = 4;
+  if (second && second !== main) { w[STYLE[second].i] = 3; }
+  return w;
+}
+function deriveMin(keeps) {
+  var m = [null, null, null, null, null, null];
+  keeps.forEach(function (k) { m[KEEP[k].i] = KEEP[k].v; });
+  return m;
+}
+var rec = { main: "speed", second: null, keeps: STYLE.speed.keeps.slice(), favs: [], w: null, min: null, shown: 5 };
+rec.w = deriveW(rec.main, rec.second); rec.min = deriveMin(rec.keeps);
+var disowned = {};
+function loadOwn() { var d = lsGet("psh.disowned", []); disowned = {}; if (Array.isArray(d)) { d.forEach(function (n) { disowned[n] = true; }); } }
+function saveOwn() { lsSet("psh.disowned", Object.keys(disowned)); }
+function savedRecPrefs() {
+  var p = lsGet("psh.rec2", null);
+  if (p && STYLE[p.main] && Array.isArray(p.w) && p.w.length === 6 && Array.isArray(p.min) && Array.isArray(p.keeps)) {
+    rec.main = p.main; rec.second = STYLE[p.second] ? p.second : null;
+    rec.keeps = p.keeps.filter(function (k) { return KEEP[k]; });
+    rec.w = p.w; rec.min = p.min; rec.favs = Array.isArray(p.favs) ? p.favs : [];
+  }
+}
+function persistRec() { lsSet("psh.rec2", { main: rec.main, second: rec.second, keeps: rec.keeps, w: rec.w, min: rec.min, favs: rec.favs }); }
+function minOptions(sel) {
+  var h = '<option value="">no limit</option>';
+  for (var x = LO; x <= HI + 1e-9; x += 0.25) { h += '<option value="' + x + '"' + (sel === x ? " selected" : "") + ">at least " + fmt(x) + "</option>"; }
+  return h;
+}
+function renderSliders() {
+  $("sliders").innerHTML = STAT.map(function (n, i) {
+    return '<div class="slider-row"><label for="sw' + i + '"><b>' + SHORT[i] + '</b></label>' +
+      '<input type="range" min="0" max="4" step="1" id="sw' + i + '" value="' + rec.w[i] + '" data-sw="' + i + '" aria-valuetext="' + LEVELS[rec.w[i]] + '">' +
+      '<span class="lv" id="lv' + i + '">' + LEVELS[rec.w[i]] + '</span>' +
+      '<select id="sm' + i + '" data-sm="' + i + '" aria-label="Lowest ' + SHORT[i] + '">' + minOptions(rec.min[i]) + "</select></div>";
+  }).join("");
+}
+function renderQ() {
+  $("q1").innerHTML = STYLE_ORDER.map(function (k) { return '<button type="button" class="pick" data-q1="' + k + '" aria-pressed="' + (rec.main === k) + '">' + STYLE[k].label + "<span>" + STYLE[k].sub + "</span></button>"; }).join("");
+  $("q1b").innerHTML = STYLE_ORDER.filter(function (k) { return k !== rec.main; }).map(function (k) { return '<button type="button" class="pick sm" data-q1b="' + k + '" aria-pressed="' + (rec.second === k) + '">' + STYLE[k].label + "</button>"; }).join("") +
+    '<button type="button" class="pick sm" data-q1b="" aria-pressed="' + (rec.second === null) + '">No second pick</button>';
+  $("q2").innerHTML = KEEP_ORDER.map(function (k) { return '<button type="button" class="pick" data-q2="' + k + '" aria-pressed="' + (rec.keeps.indexOf(k) >= 0) + '">' + KEEP[k].label + "<span>" + KEEP[k].sub + "</span></button>"; }).join("");
+}
+function applyChoices() {
+  rec.w = deriveW(rec.main, rec.second); rec.min = deriveMin(rec.keeps); rec.shown = 5;
+  renderQ(); renderSliders(); persistRec(); updateRec();
+}
+function renderOwned() {
+  function mk(list, id) {
+    $(id).innerHTML = list.map(function (p) { return '<label><input type="checkbox" data-own="' + esc(p.n) + '"' + (disowned[p.n] ? "" : " checked") + "> " + esc(p.n) + "</label>"; }).join("");
+  }
+  mk(BODIES, "ownB"); mk(TIRES, "ownT"); mk(GLIDERS, "ownG");
+}
+function renderFavs() {
+  $("favChips").innerHTML = rec.favs.map(function (n) { return '<button type="button" data-unfav="' + esc(n) + '" aria-label="Remove ' + esc(n) + '">' + esc(n) + "</button>"; }).join("");
+  $("favNote").textContent = rec.favs.length ? "Only using characters with the same numbers as these picks. Tap a name to remove it." : "Any character. Search to pick only your favorites.";
+}
+function recCardHTML(g, rank, maxes, opts) {
+  var o = g.items[0], c = CHARS[o.gi];
+  var main = mainBuild(), cmp = main ? statsOfBuild(main) : null;
+  var tops = []; for (var i = 0; i < 6; i++) { if (opts.w[i] > 0) { tops.push(i); } }
+  tops.sort(function (a, b) { return (opts.w[b] - opts.w[a]) || (a - b); });
+  var why = tops.slice(0, 2).map(function (i) { return SHORT[i] + " " + fmt(o.v[i]) + " (best here: " + fmt(maxes[i]) + ")"; }).join(", ");
+  if (!why) { why = "Best total across all six stats"; }
+  var h = '<article class="rc"><div class="rank" aria-label="Rank ' + rank + '">' + rank + '</div><div>';
+  h += '<div class="row" style="justify-content:space-between"><h3>' + esc(c.names.join(" / ")) + "</h3>" + (g.items.length > 1 ? '<span class="chip red">Tie</span>' : "") + "</div>";
+  h += '<div class="parts"><div><b>Character</b>' + esc(c.names.join(" / ")) + "</div><div><b>Kart or bike</b>" + esc(o.B.names.join(" / ")) + "</div><div><b>Tires</b>" + esc(o.T.names.join(" / ")) + "</div><div><b>Glider</b>" + esc(o.G.names.join(" / ")) + "</div></div>";
+  h += barsHTML({ v: o.v }, cmp, true);
+  h += '<p class="why">' + esc(why) + "." + (g.items.length > 1 ? " Ties with " + (g.items.length - 1) + " other " + (g.items.length === 2 ? "build" : "builds") + "." : "") + "</p>";
+  h += '<details><summary>Read more</summary><div class="tbl"><table><thead><tr><th>Stat</th><th>This build</th><th>Best here</th>' + (cmp ? "<th>vs main</th>" : "") + "</tr></thead><tbody>";
+  for (var j = 0; j < 6; j++) {
+    h += "<tr><td>" + SHORT[j] + "</td><td>" + fmt(o.v[j]) + "</td><td>" + fmt(maxes[j]) + "</td>" + (cmp ? "<td>" + (Math.abs(o.v[j] - cmp.v[j]) < 1e-9 ? "same" : fmtD(o.v[j] - cmp.v[j])) + "</td>" : "") + "</tr>";
+  }
+  h += "</tbody></table></div>";
+  if (g.items.length > 1) {
+    h += '<p class="small" style="margin-top:8px"><b>Builds that tie:</b></p><ul class="ties">';
+    g.items.slice(1, 13).forEach(function (t) {
+      h += "<li>" + esc(CHARS[t.gi].names.join(" / ")) + " + " + esc(t.B.names[0]) + (t.B.names.length > 1 ? " (+" + (t.B.names.length - 1) + " same)" : "") + " + " + esc(t.T.names[0]) + " + " + esc(t.G.names[0]) + " &rarr; " + t.v.map(fmt).join(" / ") + "</li>";
+    });
+    if (g.items.length > 13) { h += "<li>and " + (g.items.length - 13) + " more</li>"; }
+    h += "</ul>";
+  }
+  h += '<p class="note">Some parts must be unlocked or come from add-on content, so check that you have them. Stat order: Speed / Accel / Weight / Handling / Traction / Mini-Turbo.</p></details>';
+  h += '<div class="row" style="margin-top:10px"><button class="btn sm" type="button" data-recsave="' + opts.tag + ":" + (rank - 1) + '">Save to My Builds</button><button class="btn ghost sm" type="button" data-recopen="' + opts.tag + ":" + (rank - 1) + '">Open in calculator</button></div>';
+  h += "</div></article>";
+  return h;
+}
+var lastResults = {};
+function runRec(prefs, tag, limit, container) {
+  var r = recommend(prefs);
+  lastResults[tag] = { r: r, prefs: prefs };
+  var shown = r.groups.slice(0, limit);
+  var html = shown.map(function (g, i) { return recCardHTML(g, i + 1, r.maxes, { w: prefs.w, min: prefs.min, tag: tag }); }).join("");
+  if (!r.groups.length) { html = '<div class="callout"><p>Nothing fits all of that. Tap one of the "can\'t give up" picks to turn it off, or add more characters.</p></div>'; }
+  container.innerHTML = html;
+  return r;
+}
+function updateRec() {
+  var prefs = { w: rec.w, min: rec.min, favs: rec.favs, disowned: disowned };
+  var r = runRec(prefs, "rec", rec.shown, $("recRes"));
+  $("recSummary").textContent = r.count ? r.count + " builds fit your picks. Here are the best " + Math.min(rec.shown, r.groups.length) + "." + (r.allZero ? " Every slider is at Not important, so builds are ranked by all six stats added up." : "") : "";
+  $("recMore").hidden = r.groups.length <= rec.shown || rec.shown >= 25;
+}
+function initRec() {
+  loadOwn(); savedRecPrefs();
+  renderQ(); renderSliders(); renderOwned(); renderFavs(); updateRec();
+  $("v-recommend").addEventListener("click", function (e) {
+    var t = e.target.closest("button"); if (!t) { return; }
+    if (t.hasAttribute("data-q1")) {
+      rec.main = t.getAttribute("data-q1"); if (rec.second === rec.main) { rec.second = null; }
+      rec.keeps = STYLE[rec.main].keeps.slice(); applyChoices();
+    } else if (t.hasAttribute("data-q1b")) {
+      rec.second = t.getAttribute("data-q1b") || null; applyChoices();
+    } else if (t.hasAttribute("data-q2")) {
+      var k = t.getAttribute("data-q2"), at = rec.keeps.indexOf(k);
+      if (at >= 0) { rec.keeps.splice(at, 1); } else { rec.keeps.push(k); }
+      applyChoices();
+    }
+  });
+  var inp = $("favIn"), list = $("favList");
+  function show() {
+    var q = inp.value.trim().toLowerCase();
+    var m = CHAR_LIST.filter(function (c) { return (!q || c.n.toLowerCase().indexOf(q) >= 0) && rec.favs.indexOf(c.n) < 0; }).slice(0, 10);
+    if (!m.length) { list.hidden = true; return; }
+    list.innerHTML = m.map(function (c) { return '<button type="button" data-fav="' + esc(c.n) + '">' + esc(c.n) + ' <small>' + esc(CHARS[c.g].names.join(" / ")) + "</small></button>"; }).join("");
+    list.hidden = false;
+  }
+  inp.addEventListener("input", show); inp.addEventListener("focus", show);
+  inp.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); var b = list.querySelector("button"); if (b) { b.click(); } } });
+  inp.addEventListener("blur", function () { setTimeout(function () { list.hidden = true; }, 120); });
+  list.addEventListener("mousedown", function (e) { e.preventDefault(); });
+  list.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-fav]"); if (!b) { return; }
+    rec.favs.push(b.getAttribute("data-fav")); inp.value = ""; list.hidden = true; rec.shown = 5; renderFavs(); persistRec(); updateRec();
+  });
+  $("favChips").addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-unfav]"); if (!b) { return; }
+    rec.favs = rec.favs.filter(function (n) { return n !== b.getAttribute("data-unfav"); }); rec.shown = 5; renderFavs(); persistRec(); updateRec();
+  });
+  $("sliders").addEventListener("input", function (e) {
+    var t = e.target;
+    if (t.hasAttribute("data-sw")) { var i = +t.getAttribute("data-sw"); rec.w[i] = +t.value; $("lv" + i).textContent = LEVELS[rec.w[i]]; t.setAttribute("aria-valuetext", LEVELS[rec.w[i]]); rec.shown = 5; persistRec(); updateRec(); }
+  });
+  $("sliders").addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.hasAttribute("data-sm")) { var i = +t.getAttribute("data-sm"); rec.min[i] = t.value === "" ? null : parseFloat(t.value); rec.shown = 5; persistRec(); updateRec(); }
+  });
+  $("recMore").addEventListener("click", function () { rec.shown += 5; updateRec(); });
+  $("ownDetails").addEventListener("change", function (e) {
+    var t = e.target; if (!t.hasAttribute("data-own")) { return; }
+    var n = t.getAttribute("data-own"); if (t.checked) { delete disowned[n]; } else { disowned[n] = true; }
+    saveOwn(); rec.shown = 5; updateRec();
+  });
+  $("ownAll").addEventListener("click", function () { disowned = {}; saveOwn(); renderOwned(); rec.shown = 5; updateRec(); });
+}
+
+/* ============================== MY BUILDS VIEW ============================== */
+var editor = null;
+function renderBuilds() {
+  var list = getBuilds();
+  $("storeWarn").hidden = false;
+  if (!storeOK) { $("storeWarn").innerHTML = "<b>Saving is blocked in this browser right now.</b> Builds will last until you close this page. Use <b>Copy all builds as text</b> to keep them."; }
+  var h = "";
+  var valid = list.filter(validBuild);
+  if (!valid.length) {
+    h += '<div class="bcard ex"><div class="bhead"><h3>Waluigi + The Duke + Off-Road + Hylian Kite</h3><span class="chip">Example, not saved</span></div>' +
+      '<div class="small muted">This is what a saved build looks like. Add your own with Add a build, or save from the calculator or the recommender.</div>' +
+      barsHTML(buildStats(idxOf(CHAR_LIST, "Waluigi"), idxOf(BODIES, "The Duke"), idxOf(TIRES, "Off-Road"), idxOf(GLIDERS, "Hylian Kite")), null, true) +
+      '<ul class="rlist"><li><b>Example result</b> 150cc &middot; Cup race &middot; 1st &middot; "Held the lead on straights."</li></ul></div>';
+  }
+  valid.forEach(function (b) { h += buildCardHTML(b); });
+  $("buildList").innerHTML = h;
+}
+function buildCardHTML(b) {
+  var st = statsOfBuild(b), res = b.results || [];
+  var last = res.length ? res.map(function (r) { return r.date; }).sort().slice(-1)[0] : null;
+  var podium = res.filter(function (r) { return r.place !== "DNF" && +r.place <= 3; }).length;
+  var h = '<article class="bcard' + (b.star ? " main" : "") + '" data-bid="' + b.id + '">';
+  h += '<div class="bhead"><input type="text" value="' + esc(b.name) + '" data-rename="' + b.id + '" aria-label="Build name" style="flex:1 1 200px;max-width:340px;font-weight:700"><div class="row"><button type="button" class="star" data-star="' + b.id + '" aria-pressed="' + (b.star ? "true" : "false") + '">' + (b.star ? "★ Main build" : "☆ Make main") + "</button></div></div>";
+  h += '<div class="small">' + esc(b.ch) + " + " + esc(b.b) + " + " + esc(b.t) + " + " + esc(b.g) + "</div>";
+  h += barsHTML(st, null, true);
+  h += '<div class="small muted">Created ' + esc(b.created || "") + " &middot; " + (last ? "Last tested " + esc(last) : "Not tested yet") + (res.length ? " &middot; " + podium + " podium finish" + (podium === 1 ? "" : "es") + " in " + res.length + " logged race" + (res.length === 1 ? "" : "s") : "") + "</div>";
+  h += '<details><summary>Results (' + res.length + ')</summary><ul class="rlist" style="margin:8px 0">';
+  res.slice().sort(function (a, c) { return (c.date || "").localeCompare(a.date || ""); }).forEach(function (r) {
+    h += "<li><b>" + esc(r.date) + "</b> " + esc(r.cc) + " &middot; " + esc(r.course || "No course") + " &middot; " + (r.place === "DNF" ? "DNF" : esc(r.place) + "th".replace(/^th$/, "")) + (r.notes ? " &middot; " + esc(r.notes) : "") + ' <button class="btn ghost sm" type="button" data-delres="' + b.id + ":" + r.id + '">Remove</button></li>';
+  });
+  if (!res.length) { h += '<li class="muted">No results yet.</li>'; }
+  h += '</ul><div class="rform" data-rf="' + b.id + '">' +
+    '<div><label class="l">Date</label><input type="date" data-f="date" value="' + today() + '"></div>' +
+    '<div><label class="l">Cup or course</label><input type="text" data-f="course" placeholder="Mushroom Cup"></div>' +
+    '<div><label class="l">Engine class</label><select data-f="cc"><option>150cc</option><option>100cc</option></select></div>' +
+    '<div><label class="l">Placement</label><select data-f="place">' + [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map(function (n) { return "<option>" + n + "</option>"; }).join("") + "<option>DNF</option></select></div>" +
+    '<div style="grid-column:1/-1"><label class="l">Notes</label><input type="text" data-f="notes" placeholder="What felt good or bad"></div>' +
+    '<div><button class="btn sm" type="button" data-addres="' + b.id + '">Add result</button></div></div></details>';
+  h += '<div><label class="l" for="nt-' + b.id + '">Notes</label><textarea id="nt-' + b.id + '" data-notes="' + b.id + '" placeholder="How does this build feel?">' + esc(b.notes || "") + "</textarea></div>";
+  h += '<div class="row"><button class="btn ghost sm" type="button" data-bcalc="' + b.id + '">Open in calculator</button><button class="btn ghost sm" type="button" data-bedit="' + b.id + '">Edit parts</button><button class="btn ghost sm" type="button" data-bcode="' + b.id + '">Copy build code</button><button class="btn danger sm" type="button" data-bdel="' + b.id + '">Delete</button></div>';
+  h += '<div id="cf-' + b.id + '"></div></article>';
+  return h;
+}
+function ordinal(n) { var s = ["th", "st", "nd", "rd"], v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
+var edState = { ch: 0, b: 0, t: 0, g: 0 };
+function openEditor(id) {
+  var rec0 = id ? getBuilds().filter(function (x) { return x.id === id; })[0] : null;
+  var init = rec0 ? buildIdx(rec0) : { ch: idxOf(CHAR_LIST, "Wario"), b: idxOf(BODIES, "Silver Arrow"), t: idxOf(TIRES, "Off-Road"), g: idxOf(GLIDERS, "Hylian Kite") };
+  edState = { ch: init.ch, b: init.b, t: init.t, g: init.g };
+  var box = $("editorBox");
+  box.innerHTML = '<div class="card sec"><h2>' + (rec0 ? "Edit parts" : "Add a build") + '</h2><label class="l" for="edName">Build name</label><input type="text" id="edName" value="' + esc(rec0 ? rec0.name : "") + '" placeholder="My go-to build" style="max-width:340px;margin-bottom:12px">' +
+    '<div id="edPanelWrap">' + panelHTML("E", "Parts", false) + '</div><div class="row" style="margin-top:12px"><button class="btn" type="button" id="edSave">Save build</button><button class="btn ghost" type="button" id="edCancel">Cancel</button></div></div>';
+  mountPanel("E", edState, function () { updateEd(); });
+  updateEd();
+  $("edSave").addEventListener("click", function () {
+    var name = $("edName").value.trim() || (CHAR_LIST[edState.ch].n + " " + BODIES[edState.b].n);
+    var l = getBuilds();
+    if (rec0) {
+      l = l.map(function (x) { if (x.id === rec0.id) { x.name = name; x.ch = CHAR_LIST[edState.ch].n; x.b = BODIES[edState.b].n; x.t = TIRES[edState.t].n; x.g = GLIDERS[edState.g].n; } return x; });
+    } else { var r = stateToRecord(name, edState); if (!l.length) { r.star = true; } l.unshift(r); }
+    saveBuilds(l); box.innerHTML = ""; renderBuilds(); updateCalc(); toast("Saved");
+  });
+  $("edCancel").addEventListener("click", function () { box.innerHTML = ""; });
+  box.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+function updateEd() { $("st-E").innerHTML = barsHTML(buildStats(edState.ch, edState.b, edState.t, edState.g), null); }
+
+function initBuilds() {
+  $("newBuild").addEventListener("click", function () { openEditor(null); });
+  $("copyAll").addEventListener("click", function () { copyText(JSON.stringify(getBuilds()), "All builds copied"); });
+  $("toggleImport").addEventListener("click", function () { $("importBox").hidden = !$("importBox").hidden; });
+  $("importGo").addEventListener("click", function () {
+    try {
+      var arr = JSON.parse($("importTa").value);
+      if (!Array.isArray(arr)) { throw new Error("x"); }
+      var l = getBuilds(), n = 0;
+      arr.forEach(function (b) {
+        if (b && typeof b === "object" && validBuild(b)) {
+          l.push({ id: uid(), name: String(b.name || "Imported build").slice(0, 80), ch: b.ch, b: b.b, t: b.t, g: b.g, star: false, results: Array.isArray(b.results) ? b.results.map(function (r) { return { id: uid(), date: String(r.date || ""), course: String(r.course || ""), cc: String(r.cc || "150cc"), place: String(r.place || "1"), notes: String(r.notes || "") }; }) : [], notes: String(b.notes || ""), created: String(b.created || today()) });
+          n++;
+        }
+      });
+      saveBuilds(l); renderBuilds(); updateCalc(); $("importTa").value = ""; $("importBox").hidden = true; toast(n + " build" + (n === 1 ? "" : "s") + " added");
+    } catch (e) { toast("That text is not a copied builds list"); }
+  });
+  var bl = $("buildList");
+  bl.addEventListener("click", function (e) {
+    var t = e.target.closest("button"); if (!t) { return; }
+    var l = getBuilds();
+    if (t.hasAttribute("data-star")) {
+      var id = t.getAttribute("data-star"), was = l.filter(function (x) { return x.id === id; })[0].star;
+      l.forEach(function (x) { x.star = (x.id === id) ? !was : false; }); saveBuilds(l); renderBuilds(); updateCalc();
+    } else if (t.hasAttribute("data-delres")) {
+      var p = t.getAttribute("data-delres").split(":");
+      l.forEach(function (x) { if (x.id === p[0]) { x.results = (x.results || []).filter(function (r) { return r.id !== p[1]; }); } });
+      saveBuilds(l); renderBuilds();
+    } else if (t.hasAttribute("data-addres")) {
+      var bid = t.getAttribute("data-addres"), rf = bl.querySelector('[data-rf="' + bid + '"]'), r = { id: uid() };
+      rf.querySelectorAll("[data-f]").forEach(function (f) { r[f.getAttribute("data-f")] = f.value; });
+      l.forEach(function (x) { if (x.id === bid) { x.results = x.results || []; x.results.push(r); } });
+      saveBuilds(l); renderBuilds(); toast("Result added");
+    } else if (t.hasAttribute("data-bcalc")) {
+      var b = l.filter(function (x) { return x.id === t.getAttribute("data-bcalc"); })[0]; setPanel("A", buildIdx(b)); go("calc");
+    } else if (t.hasAttribute("data-bedit")) { openEditor(t.getAttribute("data-bedit")); }
+    else if (t.hasAttribute("data-bcode")) {
+      var bb = l.filter(function (x) { return x.id === t.getAttribute("data-bcode"); })[0]; copyText(codeOf(buildIdx(bb)), "Build code copied");
+    } else if (t.hasAttribute("data-bdel")) {
+      var did = t.getAttribute("data-bdel");
+      $("cf-" + did).innerHTML = '<div class="callout"><p>Delete this build and its results?</p><div class="row"><button class="btn danger sm" type="button" data-bdelyes="' + did + '">Yes, delete</button><button class="btn ghost sm" type="button" data-bdelno="' + did + '">Keep it</button></div></div>';
+    } else if (t.hasAttribute("data-bdelyes")) {
+      var yid = t.getAttribute("data-bdelyes"); l = l.filter(function (x) { return x.id !== yid; }); saveBuilds(l); renderBuilds(); updateCalc(); toast("Deleted");
+    } else if (t.hasAttribute("data-bdelno")) { $("cf-" + t.getAttribute("data-bdelno")).innerHTML = ""; }
+  });
+  bl.addEventListener("change", function (e) {
+    var t = e.target;
+    if (t.hasAttribute("data-rename")) { var l = getBuilds(); l.forEach(function (x) { if (x.id === t.getAttribute("data-rename")) { x.name = t.value.trim() || x.name; } }); saveBuilds(l); updateCalc(); toast("Name saved"); }
+    if (t.hasAttribute("data-notes")) { var l2 = getBuilds(); l2.forEach(function (x) { if (x.id === t.getAttribute("data-notes")) { x.notes = t.value; } }); saveBuilds(l2); toast("Notes saved"); }
+  });
+}
+
+/* ============================== LEARN VIEW ============================== */
+var learnTab = "stats", moreTab = "shortcuts";
+var LEARN = [["stats", "Stats 101"], ["drive", "Driving basics"], ["items", "Items and tactics"], ["best", "Best builds"], ["check", "Comeback checklist"], ["gloss", "Glossary"]];
+function renderLearnTabs() {
+  $("learnTabs").innerHTML = LEARN.map(function (t) { return '<button type="button" data-lt="' + t[0] + '" aria-pressed="' + (learnTab === t[0]) + '">' + t[1] + "</button>"; }).join("");
+}
+function ex(chn, bd, tr, gl) { return buildStats(idxOf(CHAR_LIST, chn), idxOf(BODIES, bd), idxOf(TIRES, tr), idxOf(GLIDERS, gl)).v; }
+var STAT_INFO = [
+  { d: "How fast you can go on a flat, open road.", m: "Long straights and open tracks, and when you are chasing someone down.", p: "Heavy characters like Bowser and Wario start highest at 4.75. Badwagon and B Dasher add 0.5, and Slick, Metal and Gold tires add 0.5. Roller tires and Biddybuggy cost speed.", a: ["Wario", "Standard Kart", "Standard", "Super Glider"], b: ["Wario", "Standard Kart", "Slick", "Super Glider"] },
+  { d: "How quickly you reach top speed, and how fast you pick it back up after being slowed down.", m: "After tight turns, hits and off-road slowdowns, and in busy packs where you stop and start.", p: "Light and baby characters start highest, 4 to 4.25. Biddybuggy and Mr. Scooty add 0.75, and Roller tires add 0.5. Metal tires cost 1.", a: ["Koopa Troopa", "Standard Kart", "Standard", "Super Glider"], b: ["Koopa Troopa", "Standard Kart", "Roller", "Super Glider"] },
+  { d: "How much you push others around and how little they push you in bumps.", m: "Crowded starts, narrow roads and anti-gravity sections where racers touch.", p: "Heavy characters have 4 to 4.5. Monster and Metal tires add 0.5, and Steel Driver and Badwagon add 0.5. Biddybuggy and Mr. Scooty cost 0.5. Heavier is not always better: weight comes with less Accel and Handling.", a: ["Bowser", "Standard Kart", "Standard", "Super Glider"], b: ["Bowser", "Biddybuggy", "Roller", "Super Glider"] },
+  { d: "How sharply you turn, both when steering normally and when drifting.", m: "Twisty courses, hairpins and when you need to hold a tight line.", p: "Baby characters start at 4.5 to 5. Pipe Frame, Biddybuggy and Mr. Scooty add 0.5. Monster tires cost 0.75, and Off-Road tires cost 0.5.", a: ["Baby Peach", "Standard Kart", "Standard", "Super Glider"], b: ["Baby Peach", "Standard Kart", "Monster", "Super Glider"] },
+  { d: "How well your kart grips the road, and how little rough ground slows you.", m: "Dirt, grass and bumpy sections, and when you leave the racing line.", p: "Light characters start highest, around 4 to 4.25. Landship adds 0.75. Off-Road and Monster tires add 0.25 to 0.5. Slim and Slick tires cost 1 or more.", a: ["Wario", "Standard Kart", "Off-Road", "Super Glider"], b: ["Wario", "Standard Kart", "Slick", "Super Glider"] },
+  { d: "Hidden stat. It changes how fast mini-turbos charge and how long and strong they are.", m: "Courses with lots of drifting. It matters most if you drift often and let go at the right time.", p: "Baby characters start at 4. Tanooki Kart and Koopa Clown add 1, and Mr. Scooty and Roller tires add 0.75. Metal, Slick and Gold tires cost 0.75.", a: ["Baby Peach", "Tanooki Kart", "Roller", "Super Glider"], b: ["Baby Peach", "Standard Kart", "Metal", "Super Glider"] }
+];
+function renderStatsTab() {
+  var h = '<div class="sec"><h2>Stats 101</h2><p class="muted">Every build has six stats. Your character, kart, tires and glider each add or take away a little, and the game keeps each total between 0.75 and 5.75.</p></div>';
+  h += '<div class="special"><h3>The hidden stat: Mini-Turbo</h3><p>The game\'s stat bars only show five stats. Mini-Turbo is the sixth, and it\'s hidden. It changes how fast a drift charges and how long and strong the boost is. This site shows it for every build.</p></div>';
+  h += '<div class="special"><h3>Smart Steering</h3><p>In Mario Kart 8 Deluxe, Smart Steering helps keep you on the track. It also blocks the pink Ultra Mini-Turbo, the third and strongest boost level. Turning it off gives you the extra boost and takes away the help.</p></div>';
+  h += '<div class="grid g2">';
+  STAT_INFO.forEach(function (s, i) {
+    var a = ex.apply(null, s.a), b = ex.apply(null, s.b);
+    h += '<article class="topic"><h3>' + STAT[i] + '</h3><p>' + esc(s.d) + '</p><details><summary>Read more</summary><p><b>When it matters most:</b> ' + esc(s.m) + "</p><p><b>Which parts move it:</b> " + esc(s.p) + "</p>" +
+      '<p class="small"><b>Small example:</b> ' + esc(s.a[0] + " + " + s.a[1] + " + " + s.a[2]) + " has " + fmt(a[i]) + " " + SHORT[i] + ". Swap in " + esc(s.b.filter(function (x, k) { return x !== s.a[k]; }).join(" and ")) + " and it becomes " + fmt(b[i]) + ".</p></details></article>";
+  });
+  h += "</div>";
+  h += '<div class="sec" style="margin-top:20px"><h2>How stats add up</h2><p class="muted">Step through a build one part at a time.</p><div class="card" id="addUp"></div></div>';
+  h += '<p class="src">Sources: Nintendo Life numbers. The Mini-Turbo details are from Kotaku. The game also has hidden stats for water, air and anti-gravity that this site does not show.</p>';
+  $("learnBody").innerHTML = h;
+  addUpStep = 0; renderAddUp();
+}
+var addUpStep = 0;
+function renderAddUp() {
+  var parts = [
+    ["Character", CHAR_LIST[idxOf(CHAR_LIST, "Waluigi")].n, CHARS[CHAR_LIST[idxOf(CHAR_LIST, "Waluigi")].g].s],
+    ["Kart or bike", "The Duke", BODIES[idxOf(BODIES, "The Duke")].s],
+    ["Tires", "Off-Road", TIRES[idxOf(TIRES, "Off-Road")].s],
+    ["Glider", "Hylian Kite", GLIDERS[idxOf(GLIDERS, "Hylian Kite")].s]
+  ];
+  var tot = [0, 0, 0, 0, 0, 0];
+  var h = '<div class="tbl"><table class="t"><thead><tr><th>Part</th>' + SHORT.map(function (s) { return "<th>" + s + "</th>"; }).join("") + "</tr></thead><tbody>";
+  for (var i = 0; i < addUpStep; i++) {
+    parts[i][2].forEach(function (x, k) { tot[k] += x; });
+    h += "<tr><td>" + parts[i][0] + ": " + esc(parts[i][1]) + "</td>" + parts[i][2].map(function (x, k) { return "<td>" + (i === 0 ? fmt(x) : (x === 0 ? "0" : fmtD(x))) + "</td>"; }).join("") + "</tr>";
+  }
+  if (addUpStep > 0) { h += '<tr><td><b>Total so far</b></td>' + tot.map(function (x) { return "<td><b>" + fmt(clamp(x)) + "</b></td>"; }).join("") + "</tr>"; }
+  h += "</tbody></table></div>";
+  if (addUpStep === 0) { h += '<p class="muted">Press the button to start with a character.</p>'; }
+  h += '<div class="row" style="margin-top:10px">' + (addUpStep < 4 ? '<button class="btn sm" type="button" id="addNext">Add ' + (addUpStep === 0 ? "the character" : "the " + parts[addUpStep][0].toLowerCase()) + "</button>" : '<span class="chip red">Done</span>') + '<button class="btn ghost sm" type="button" id="addReset">Start over</button></div>';
+  $("addUp").innerHTML = h;
+  var n = $("addNext"); if (n) { n.addEventListener("click", function () { addUpStep++; renderAddUp(); }); }
+  $("addReset").addEventListener("click", function () { addUpStep = 0; renderAddUp(); });
+}
+
+var DRIVE = [
+  { t: "Drifting and mini-turbo stages", ss: true, s: "Hop with R, steer into the turn and hold the drift. Sparks turn blue, then orange, then pink. Let go to get a boost.", m: "A higher color gives a longer, stronger boost, so let go at the color you want. The Mini-Turbo stat makes the sparks charge faster. With Smart Steering on, the pink Ultra Mini-Turbo is blocked in Mario Kart 8 Deluxe." },
+  { t: "Tricks and slipstream", ss: false, s: "Press R as you leave a ramp to do a trick, and you get a boost on landing. Sit right behind another racer to build a slipstream boost.", m: "Coins add a small amount of top speed, up to 10 coins, so pick up the ones on your normal line. In anti-gravity sections, touching another racer can give you a boost." },
+  { t: "Rocket start and recovery", ss: false, s: "Hold accelerate as the 2 appears in the countdown for a rocket start. After a hit, get straight back onto the road.", m: "The rocket start timing is tight, so practice it a few times in a row. Traction helps on rough ground, and Acceleration helps you get back up to speed after a hit or a tight turn." },
+  { t: "Line choice", ss: true, s: "Go in wide, pass close to the inside edge at the middle of the turn and leave wide. Use shortcuts only where you can make them reliably.", m: "A clean line usually beats a risky cut you rarely land. Check the Shortcuts page under More. With Smart Steering on, the kart helps you stay on the road when you drift off the line." }
+];
+var ITEMS = [
+  { t: "Blocking red shells", s: "Hold your item behind your kart (hold the item button) so it trails you. A trailing item can block a shell coming from behind.", m: "Keep a shell, banana or similar item trailing when someone is close behind you. Once it blocks a shell, it is used up, so look for a new item." },
+  { t: "Blue shell and horn", s: "The Blue Shell goes for the racer in first. If you get a Super Horn while one is coming, use it: the horn can stop the shell.", m: "If you are in first, expect one. Stay near other racers so you are not the only target, and have your horn ready if you got one." },
+  { t: "Holding two items", s: "In Mario Kart 8 Deluxe you can carry two items at once.", m: "Use one to defend and keep the other for a clear shot. Use the better item first when a threat is close." },
+  { t: "Using items offensively", s: "Throw shells forward when you have a clear straight line to the target. Trailing items can be thrown forward or backward.", m: "Throw backward when someone is drafting you, and forward on straights. Bananas dropped on narrow roads work best." }
+];
+function renderTopics(arr, title, intro, src) {
+  var h = '<div class="sec"><h2>' + title + '</h2><p class="muted">' + intro + "</p></div>";
+  arr.forEach(function (x) {
+    h += '<article class="topic"><h3>' + esc(x.t) + (x.ss ? '<span class="tag-ss" title="This tip changes with the Smart Steering setting">Smart Steering matters here</span>' : "") + "</h3><p>" + esc(x.s) + "</p><details><summary>Read more</summary><p>" + esc(x.m) + "</p></details></article>";
+  });
+  return h + '<p class="src">' + src + "</p>";
+}
+function renderBest() {
+  var h = '<div class="sec"><h2>Best builds</h2><p class="muted">Top 3 for each style. They use the same picks as the recommender, so you can tweak any list there.</p></div>';
+  h += '<div class="callout"><p>Some parts must be unlocked or come from add-on content, so check that you have them. If you untick parts under Fine-tune on the recommender, these lists skip them too.</p></div>';
+  STYLE_ORDER.forEach(function (k) {
+    var keeps = STYLE[k].keeps.map(function (x) { return KEEP[x].sub; }).join(", ");
+    h += '<div class="sec"><h3>' + STYLE[k].label + '</h3><p class="note">Most important: ' + STYLE[k].label + ". Can't go below: " + esc(keeps) + '.</p><div class="res" id="best-' + k + '"></div><div class="row" style="margin-top:8px"><button class="btn ghost sm" type="button" data-bestgo="' + k + '">Tweak this in the recommender</button></div></div>';
+  });
+  h += '<p class="src">Sources: Nintendo Life numbers. These come from the numbers, not from race results. Master Cycle Zero, Ancient Tires and the Paraglider are left out until their numbers are confirmed.</p>';
+  $("learnBody").innerHTML = h;
+  STYLE_ORDER.forEach(function (k) {
+    runRec({ w: deriveW(k, null), min: deriveMin(STYLE[k].keeps), favs: [], disowned: disowned }, "best-" + k, 3, $("best-" + k));
+  });
+}
+var CHECK = [
+  ["Controls and settings", [["c1", "Choose Smart Steering on or off. On helps you stay on the road but blocks the pink Ultra Mini-Turbo in 8 Deluxe."], ["c2", "Find your hop and drift button (R by default), your item button and your camera view."], ["c3", "Run one practice race just to feel the controls again, with no goal."]]],
+  ["Pick and test a build", [["c4", "Pick one build from the calculator or the recommender."], ["c5", "Run 3 laps on a course you know, and change only one thing at a time."], ["c6", "Log the result and how it felt in My Builds."]]],
+  ["Practice goals", [["c7", "Do one race where you drift every big turn and let go at orange or pink."], ["c8", "Do one race where your only goal is a clean start."], ["c9", "Do one race where you draft behind someone on every straight."]]],
+  ["Item habits", [["c10", "Hold an item behind you when someone is close."], ["c11", "Use the Super Horn on a blue shell if you get one."], ["c12", "Carry two items and use the right one for the moment."]]]
+];
+function renderCheck() {
+  var done = lsGet("psh.check", {});
+  var total = 0, n = 0;
+  CHECK.forEach(function (g) { g[1].forEach(function (i) { total++; if (done[i[0]]) { n++; } }); });
+  var h = '<div class="sec"><h2>Comeback checklist</h2><p class="muted">Tick things off as you go. It saves on this device.</p><div class="prog" aria-hidden="true"><i id="progBar" style="width:' + Math.round(100 * n / total) + '%"></i></div><p class="note" id="progTxt">' + n + " of " + total + " done</p></div>";
+  CHECK.forEach(function (g) {
+    h += '<div class="card" style="margin-bottom:12px"><h3>' + g[0] + "</h3>";
+    g[1].forEach(function (i) { h += '<label class="check"><input type="checkbox" data-ck="' + i[0] + '"' + (done[i[0]] ? " checked" : "") + "><span>" + esc(i[1]) + "</span></label>"; });
+    h += "</div>";
+  });
+  h += '<div class="row"><button class="btn ghost sm" type="button" id="ckReset">Clear checklist</button></div><p class="src">Sources: general Mario Kart 8 Deluxe advice from this site. The Smart Steering note is for the Switch version.</p>';
+  $("learnBody").innerHTML = h;
+}
+var GLOSS = [
+  ["Acceleration", "How quickly you get up to speed, and how fast you recover after a hit or a tight turn."],
+  ["Anti-gravity", "Track sections where karts drive on walls and ceilings. Touching another racer there can give a boost."],
+  ["Bagging", "Falling back on purpose to get stronger items. It is not a code. Patch 3.0.0 removed the version where driving to last place immediately gave a shower of powerful items. Many players treat it as unsporting."],
+  ["Blue Shell", "An item that goes for the racer in first place."],
+  ["Coins", "Each coin adds a little top speed, up to 10."],
+  ["Drift", "Hop with R, steer and hold to slide through a turn and charge a mini-turbo."],
+  ["Glider", "The part that opens when you go off a glide ramp. It changes any stat by at most 0.25."],
+  ["Handling", "How sharply you turn."],
+  ["Hold two items", "In 8 Deluxe you can carry two items at once."],
+  ["Jump boost", "A trick off a ramp. Press R as you leave and get a boost on landing."],
+  ["Mini-Turbo", "Hidden stat. It affects how fast mini-turbos charge and how long and strong they are. It also names the boost from a drift."],
+  ["Pink Ultra Mini-Turbo", "The third and strongest drift boost. Smart Steering blocks it in 8 Deluxe."],
+  ["Red Shell", "An item that homes in on the racer ahead. A trailing item can block one coming from behind."],
+  ["Rocket start", "A boost off the starting line by pressing accelerate at the right moment in the countdown."],
+  ["Slipstream", "Staying right behind another racer for a moment to gain a speed boost."],
+  ["Smart Steering", "A setting that helps keep you on the track. In 8 Deluxe it also blocks the pink Ultra Mini-Turbo."],
+  ["Speed", "How fast you can go on an open road."],
+  ["Spin boost", "A boost from bumping another racer in an anti-gravity section."],
+  ["Super Horn", "An item that can stop a blue shell."],
+  ["Traction", "How well you grip the road and how little rough ground slows you."],
+  ["Trick", "A move off a ramp that gives a boost on landing."],
+  ["Weight", "How much you push others and how little they push you."]
+];
+function renderGloss(q) {
+  var f = GLOSS.filter(function (g) { q = (q || "").toLowerCase(); return !q || g[0].toLowerCase().indexOf(q) >= 0 || g[1].toLowerCase().indexOf(q) >= 0; });
+  $("glList").innerHTML = f.length ? f.map(function (g) { return "<dt>" + esc(g[0]) + "</dt><dd>" + esc(g[1]) + "</dd>"; }).join("") : '<p class="muted">No match. Try another word.</p>';
+}
+function renderLearn() {
+  renderLearnTabs();
+  if (learnTab === "stats") { renderStatsTab(); }
+  else if (learnTab === "drive") { $("learnBody").innerHTML = renderTopics(DRIVE, "Driving basics", "Quick tips first. Tap Read more for the detail. A blue tag means the tip depends on your Smart Steering setting.", "Sources: general Mario Kart 8 Deluxe tips. The Smart Steering and pink Ultra Mini-Turbo notes are for 8 Deluxe."); }
+  else if (learnTab === "items") { $("learnBody").innerHTML = renderTopics(ITEMS, "Items and tactics", "Defense first, then offense.", "Sources: general Mario Kart 8 Deluxe tips."); }
+  else if (learnTab === "best") { renderBest(); }
+  else if (learnTab === "check") { renderCheck(); }
+  else if (learnTab === "gloss") {
+    $("learnBody").innerHTML = '<div class="sec"><h2>Glossary</h2><label class="l" for="glQ">Search</label><input type="search" id="glQ" placeholder="Type a word, like drift" style="max-width:340px"></div><dl class="gl" id="glList"></dl><p class="src">Sources: general Mario Kart 8 Deluxe tips, Nintendo Life and Nintendo patch notes.</p>';
+    renderGloss(""); $("glQ").addEventListener("input", function (e) { renderGloss(e.target.value); });
+  }
+}
+
+/* ============================== MORE VIEW ============================== */
+var SHORTCUTS = [
+  { g: "No item needed", list: [
+    ["Thwomp Ruins", "On the final turn, trick off a platform on the side of the road. Guide source: Keen Gamer.", "kg"],
+    ["Toad Harbor", "Launch up a ramp at the start onto the upper scaffolding. Later, cut through the buildings to avoid the cable car. Source: Inverse.", "inv"],
+    ["Cheep Cheep Beach", "Drive through the shallow water marked by coins on the narrow sand road. Source: Inverse.", "inv"],
+    ["Wario's Gold Mine", "Take the secret road on the left through a gap in the fence, just before the Wario-themed tunnel. Source: Inverse.", "inv"],
+    ["Ice Ice Outpost", "Take a small ramp on the right, then go straight through a gap between the ice pillars to a second shortcut. Source: Inverse.", "inv"],
+    ["Dolphin Shoals", "After the first big pipe, float left between the other pipes to land past the section. Source: Inverse.", "inv"]
+  ] },
+  { g: "Mushroom or boost item needed", list: [
+    ["Mario Kart Stadium", "After the booster ramp glide, a mushroom cuts the big final turn. Staying in bounds is the risk. Source: Keen Gamer.", "kg"],
+    ["Water Park", "At the final carousel turn, a mushroom lets you boost through the center and skip the turn. Source: Keen Gamer.", "kg"],
+    ["Sweet Sweet Canyon", "At the final donut hole, a mushroom takes you through. Without one it is quite difficult. Source: Keen Gamer.", "kg"],
+    ["Yoshi Circuit", "Drive through the waterfall on the right shortly after the start. Use a boost item or the grass slows you. Source: Inverse.", "inv"],
+    ["Mount Wario", "The hidden path in the outdoor area needs a boost item to cross the snow. Source: Inverse.", "inv"],
+    ["GBA Mario Circuit", "Take the blue ramp on the right, then two boosts for extra airtime to glide past much of the final section. Source: Inverse.", "inv"]
+  ] },
+  { g: "Needs speed, timing or a risk", list: [
+    ["Twisted Mansion", "Reach the top floor near the end with enough speed and a stunt boost. Source: Inverse.", "inv"],
+    ["Thwomp Ruins (cave jump)", "The gap jump out of the cave is called risky by the guide. Source: Keen Gamer.", "kg"],
+    ["Thwomp Ruins (ramp after the finish)", "A mushroom gets you to the ramp. Without one the angle can be tricky. Source: Keen Gamer.", "kg"],
+    ["Bone Dry Dunes", "After the big blue ramp, glide to the upper track by veering left with enough speed. Source: Inverse.", "inv"]
+  ] }
+];
+function renderMore() {
+  $("moreTabs").innerHTML = [["shortcuts", "Shortcuts"], ["world", "Mario Kart World"], ["about", "About"]].map(function (t) { return '<button type="button" data-mt="' + t[0] + '" aria-pressed="' + (moreTab === t[0]) + '">' + t[1] + "</button>"; }).join("");
+  var h = "";
+  if (moreTab === "shortcuts") {
+    h += '<div class="sec"><h2>Shortcuts</h2><p class="muted">Only shortcuts that a published guide describes, from easiest to hardest by what the guide says you need. Not every course is here.</p></div>';
+    SHORTCUTS.forEach(function (g) {
+      h += '<div class="sc-group"><h3>' + g.g + '</h3><div class="card">';
+      g.list.forEach(function (s) { h += '<div class="sc"><b>' + esc(s[0]) + "</b><br>" + esc(s[1]) + "</div>"; });
+      h += "</div></div>";
+    });
+    h += '<p class="src">Sources: <a href="https://www.keengamer.com/articles/guides/mario-kart-8-deluxe-shortcuts-and-strategies-mushroom-cup" target="_blank" rel="noopener">Keen Gamer Mushroom Cup guide</a> and <a href="https://www.inverse.com/gaming/mario-kart-8-best-shortcuts" target="_blank" rel="noopener">Inverse best shortcuts</a>. These are third-party guides, so check a shortcut in a practice run before you rely on it.</p>';
+  } else if (moreTab === "world") {
+    h += '<div class="sec"><h2>Mario Kart World</h2><span class="chip red">Coming soon</span><p style="margin-top:10px">Everything else on this site is for Mario Kart 8 Deluxe. World gets its own numbers later. Early notes from guides:</p></div>';
+    h += '<div class="card"><ul style="margin:0;padding-left:20px"><li>The Baby Blooper kart has good acceleration, mediocre speed, low weight and above-average handling. It shares stats with the Loco Moto bike.</li><li>A common choice is a heavy or medium character on a light vehicle.</li><li>The sport-bike class was removed.</li><li>For a rocket start, hold accelerate when the 2 appears.</li><li>Coins raise your speed, and the charge jump, wall ride and rail are new moves.</li></ul></div>';
+    h += '<p class="src">Sources: early community guides. These notes have not been checked against full numbers and are not in the calculator.</p>';
+  } else {
+    h += '<div class="sec"><h2>About</h2><p>Pit Stop Helper helps players build, learn and practice in Mario Kart 8 Deluxe. Everything here is for the Switch version.</p></div>';
+    h += '<div class="card sec"><h3>Where the numbers come from</h3><p>The stat numbers come from Nintendo Life\'s Mario Kart 8 Deluxe stat tables. The Mini-Turbo description comes from Kotaku. Shortcuts come from Keen Gamer and Inverse. Patch details come from Nintendo\'s patch notes.</p></div>';
+    h += '<div class="card sec"><h3>Limits</h3><ul style="margin:0;padding-left:20px"><li>The game has hidden stats for water, air and anti-gravity that this site does not show.</li><li>Master Cycle Zero, Ancient Tires and the Paraglider are left out until their numbers are confirmed.</li><li>Miis are not included, because their stats depend on weight class.</li><li>Adding up all six stats does not tell you how good a build is. Slow builds score high that way, so this site does not rank by it.</li><li>Recommendations and Best builds come from the numbers, not from race results.</li><li>This site cannot tell which parts you have unlocked.</li></ul></div>';
+    h += '<div class="card sec"><h3>Patches</h3><p>Mario Kart 8 Deluxe version 4.0.0 (September 1, 2026) and version 4.0.1 (October 13, 2026) listed no part-stat changes. Version 3.0.0 (November 2023) removed the version of bagging where driving to last place immediately gave a shower of powerful items.</p></div>';
+    h += '<div class="card sec"><h3>What\'s new</h3><ul style="margin:0;padding-left:20px"><li>October 23, 2026: first version with the calculator, recommender, Learn pages, My Builds, shortcuts and the tip of the day.</li></ul></div>';
+    h += '<div class="card sec"><h3>Report a mistake</h3><p>If a number or tip looks wrong, tell Swipestars, the person who shared this site with you, and include the build or page you were looking at.</p></div>';
+    h += '<p class="src">Sources: Nintendo Life, Kotaku, Keen Gamer, Inverse and Nintendo patch notes.</p>';
+  }
+  $("moreBody").innerHTML = h;
+}
+
+/* ============================== TIPS ============================== */
+var TIPS = [
+  ["Driving", "Start your drift as you enter the turn, not halfway through it. An early drift gives the mini-turbo more time to charge."],
+  ["Driving", "Mini-turbo sparks go blue, then orange, then pink. Let go at the color you want. A higher color gives a longer, stronger boost."],
+  ["Driving", "In 8 Deluxe, Smart Steering blocks the pink Ultra Mini-Turbo. Turn it off if you want the strongest boost, and steer more carefully."],
+  ["Driving", "At a ramp, press R as you leave it to do a trick. You get a boost when you land."],
+  ["Driving", "Sit right behind another racer for a moment and you get a slipstream boost. Pull out and pass as it kicks in."],
+  ["Driving", "Coins add a little top speed, up to 10 coins. Grab the ones on your normal line, and do not swerve for far-off ones."],
+  ["Driving", "For a rocket start, hold accelerate as the 2 appears in the countdown. The timing is tight, so practice it."],
+  ["Driving", "In anti-gravity sections, touching another racer can give you a boost."],
+  ["Items", "Hold an item behind your kart to block shells coming from behind."],
+  ["Items", "If a Blue Shell is coming and you get a Super Horn, use it. The horn can stop the shell."],
+  ["Items", "You can carry two items at once in 8 Deluxe. Keep one for defense and use the other when you have a clear shot."],
+  ["Items", "Throw a shell forward when you have a clear straight line to the target."],
+  ["Items", "Bagging, falling back on purpose to get better items, is not a code. Patch 3.0.0 removed the version where driving to last place immediately gave a shower of powerful items. Many players treat it as unsporting."],
+  ["Items", "Trailing items can be thrown forward or backward, so they work as both a shield and an attack."],
+  ["Builds and stats", "Mini-Turbo is the hidden sixth stat. The in-game stat bars show only five."],
+  ["Builds and stats", "Your final stats are the sum of four parts: character, kart or bike, tires and glider."],
+  ["Builds and stats", "Heavy characters like Wario and Bowser start with the most Speed and Weight, and less Acceleration and Handling."],
+  ["Builds and stats", "On this site, no build gets more than 7.75 for Speed plus Acceleration added together. You trade one for the other."],
+  ["Builds and stats", "Off-Road tires add 0.25 Speed, Weight and Traction. They cost 0.25 Accel, 0.5 Handling and 0.5 Mini-Turbo."],
+  ["Builds and stats", "Roller tires add 0.5 Accel, 0.25 Handling and 0.75 Mini-Turbo. They cost 0.5 Speed and Weight, and 0.25 Traction."],
+  ["Builds and stats", "A glider changes any stat by at most 0.25, so pick it last."],
+  ["Builds and stats", "Test one change at a time: same course, same few laps, then change one part."],
+  ["Builds and stats", "If you add up all six stats, slow builds look best. Do not judge a build by that total."],
+  ["Mindset", "One hit does not decide the race. Get back on your line and keep the next corner clean."],
+  ["Mindset", "Catch up with clean lines and speed you control, not with risky shortcuts you have not practiced."],
+  ["Mindset", "Race your own last result. Beating it by a little each session is real progress."],
+  ["Mindset", "Twenty focused minutes beats an hour on autopilot. Pick one thing to work on each session."],
+  ["Mindset", "After a long break, run a few laps on a course you know before you race anyone."],
+  ["Mindset", "Write down how a build felt right after you race it. My Builds is the place."],
+  ["Mindset", "Practice with a friend or sibling. You each catch things the other misses."]
+];
+function showTip() {
+  var d = Math.floor(Date.now() / 86400000), t = TIPS[d % TIPS.length];
+  $("tipText").textContent = t[1]; $("tipCat").textContent = t[0];
+}
+
+/* ============================== NAV + THEME ============================== */
+var VIEWS = ["home", "calc", "recommend", "learn", "builds", "more"];
+var current = "home";
+function go(v, sub) {
+  if (VIEWS.indexOf(v) < 0) { v = "home"; }
+  current = v;
+  VIEWS.forEach(function (x) { $("v-" + x).hidden = (x !== v); });
+  var navKey = v === "recommend" ? "home" : v;
+  document.querySelectorAll("#nav button").forEach(function (b) {
+    if (b.getAttribute("data-go") === navKey) { b.setAttribute("aria-current", "page"); } else { b.removeAttribute("aria-current"); }
+  });
+  if (v === "learn") { if (sub) { learnTab = sub; } renderLearn(); }
+  if (v === "more") { if (sub) { moreTab = sub; } renderMore(); }
+  if (v === "builds") { renderBuilds(); }
+  if (v === "calc") { updateCalc(); }
+  if (v === "recommend") { updateRec(); }
+  window.scrollTo(0, 0);
+}
+function applyTheme(t) {
+  var root = document.documentElement;
+  if (t) { root.setAttribute("data-theme", t); } else { root.removeAttribute("data-theme"); }
+  var dark = t ? t === "dark" : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+  $("themeLbl").textContent = dark ? "Light mode" : "Dark mode";
+  $("themeBtn").setAttribute("aria-label", dark ? "Switch to light mode" : "Switch to dark mode");
+}
+function isDark() {
+  var t = document.documentElement.getAttribute("data-theme");
+  return t ? t === "dark" : (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches);
+}
+
+document.addEventListener("click", function (e) {
+  var t = e.target.closest("[data-go]");
+  if (t) { go(t.getAttribute("data-go"), t.getAttribute("data-sub")); return; }
+  t = e.target.closest("[data-lt]"); if (t) { learnTab = t.getAttribute("data-lt"); renderLearn(); return; }
+  t = e.target.closest("[data-mt]"); if (t) { moreTab = t.getAttribute("data-mt"); renderMore(); return; }
+  t = e.target.closest("[data-bestgo]"); if (t) {
+    var bk = t.getAttribute("data-bestgo"); rec.main = bk; rec.second = null; rec.keeps = STYLE[bk].keeps.slice(); applyChoices(); go("recommend"); return;
+  }
+  t = e.target.closest("[data-save]"); if (t) { var k = t.getAttribute("data-save"); saveFlow(k, calc[k]); return; }
+  t = e.target.closest("[data-copycode]"); if (t) { copyText(codeOf(calc[t.getAttribute("data-copycode")]), "Build code copied"); return; }
+  t = e.target.closest("[data-reset]"); if (t) {
+    var d = calcDefaults(); calcCmp = false; setPanel("B", d.B); setPanel("A", d.A); updateCalc(); return;
+  }
+  t = e.target.closest("[data-recsave]"); if (t) {
+    var p = t.getAttribute("data-recsave").split(":"), lr = lastResults[p[0]]; var g = lr.r.groups[+p[1]], o = g.items[0];
+    var favs = (lr.prefs.favs || []).filter(function (n) { return CHARS[o.gi].names.indexOf(n) >= 0; });
+    var name = favs[0] || CHARS[o.gi].names[0];
+    var l = getBuilds(); var rcd = { id: uid(), name: name + " " + o.B.names[0], ch: name, b: o.B.names[0], t: o.T.names[0], g: o.G.names[0], star: false, results: [], notes: "", created: today() };
+    if (!l.length) { rcd.star = true; } l.unshift(rcd); saveBuilds(l); toast("Saved to My Builds"); return;
+  }
+  t = e.target.closest("[data-recopen]"); if (t) {
+    var q = t.getAttribute("data-recopen").split(":"), lr2 = lastResults[q[0]]; var o2 = lr2.r.groups[+q[1]].items[0];
+    var fv = (lr2.prefs.favs || []).filter(function (n) { return CHARS[o2.gi].names.indexOf(n) >= 0; });
+    setPanel("A", { ch: idxOf(CHAR_LIST, fv[0] || CHARS[o2.gi].names[0]), b: o2.B.idx[0], t: o2.T.idx[0], g: o2.G.idx[0] });
+    go("calc"); return;
+  }
+  t = e.target.closest("#ckReset"); if (t) { lsSet("psh.check", {}); renderCheck(); return; }
+});
+document.addEventListener("change", function (e) {
+  var t = e.target;
+  if (t.hasAttribute && t.hasAttribute("data-ck")) {
+    var d = lsGet("psh.check", {}); d[t.getAttribute("data-ck")] = t.checked; lsSet("psh.check", d);
+    var tot = 0, n = 0; CHECK.forEach(function (g) { g[1].forEach(function (i) { tot++; if (d[i[0]]) { n++; } }); });
+    $("progBar").style.width = Math.round(100 * n / tot) + "%"; $("progTxt").textContent = n + " of " + tot + " done";
+  }
+});
+
+/* ============================== START ============================== */
+function start() {
+  var saved = lsGet("psh.theme", null);
+  applyTheme(saved === "dark" || saved === "light" ? saved : null);
+  $("themeBtn").addEventListener("click", function () { var n = isDark() ? "light" : "dark"; lsSet("psh.theme", n); applyTheme(n); });
+  showTip();
+  initCalc(); initRec(); initBuilds();
+  var h = (location.hash || "").replace("#", "");
+  var o = parseCode(h);
+  if (o) { setPanel("A", o); go("calc"); }
+  else if (VIEWS.indexOf(h) >= 0) { go(h); }
+  else { go("home"); }
+}
+start();
+</script>
+
+</body>
+</html>
